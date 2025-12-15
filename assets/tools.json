@@ -49,6 +49,14 @@
         "Security",
         "Hash"
       ]
-    }
+    },
+    {
+  "id": "String Tools • Line Breaks",
+  "title": "String Tools • Line Breaks",
+  "description": "",
+  "path": "https://yoniraf.github.io/Eng-Sup-Tools/tools/tools/line-breaks-tool.html",
+  "icon": "\ud83d\udd10",
+  "tags": ["LineBreak", "SQL"]
+}
   ]
 }
