@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TSV/CSV → JSON Converter</title>
+  <link rel="stylesheet" href="../assets/tool.css" />
+  <style>
+    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
+    #jsonOutput{min-height: 220px}
+    .hint{margin-top:8px}
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+      <h1>TSV/CSV → JSON Converter</h1>
+      <div class="muted">
+        Converts tab-delimited text (TSV) into JSON. (This tool uses <code>\t</code> as the delimiter to match the original behavior.)
+      </div>
+    </div>
+
+    <div class="card">
+      <label for="csvInput">Paste TSV/CSV-like data</label>
+      <textarea id="csvInput" rows="10" placeholder="header1	header2&#10;value1	value2"></textarea>
+
+      <div class="actions">
+        <button id="convertBtn" onclick="convertCSVtoJSON()">Convert</button>
+        <button id="copyBtn" onclick="copyToClipboard()">Copy</button>
+      </div>
+
+      <div id="copyMessage" class="hint muted"></div>
+
+      <label for="jsonOutput">JSON output</label>
+      <textarea id="jsonOutput" rows="10" readonly></textarea>
+    </div>
+  </div>
+
+  <script>
+    function convertCSVtoJSON() {
+      const csvInput = document.getElementById('csvInput').value;
+      const lines = csvInput.split('\n');
+      const headers = lines[0].split('\t'); // Delimiter kept as TAB (original behavior)
+      const jsonArray = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const currentLine = lines[i].split('\t');
+        const jsonObject = {};
+        for (let j = 0; j < headers.length; j++) {
+          jsonObject[headers[j]] = currentLine[j] || "";
+        }
+        jsonArray.push(jsonObject);
+      }
+
+      document.getElementById('jsonOutput').value = JSON.stringify(jsonArray, null, 2);
+    }
+
+    function copyToClipboard() {
+      const jsonOutput = document.getElementById('jsonOutput');
+      jsonOutput.select();
+      document.execCommand('copy');
+
+      const copyMessage = document.getElementById('copyMessage');
+      copyMessage.textContent = 'Copied ✅';
+      setTimeout(() => {
+        copyMessage.textContent = '';
+      }, 2000);
+    }
+  </script>
+</body>
+</html>

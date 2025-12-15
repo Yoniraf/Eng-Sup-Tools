@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SQL Template Generator</title>
+  <link rel="stylesheet" href="../assets/tool.css" />
+  <style>
+    .container{max-width: 1100px; margin: 0 auto;}
+    #sql-template, #output{min-height: 210px}
+    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
+    button.copied{border-color: rgba(34,197,94,.65)}
+    .filebox{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px}
+    input[type="file"]{
+      width: auto;
+      padding: 8px;
+      border-radius: 12px;
+      border: 1px solid var(--app-border);
+      background: rgba(2,6,23,.35);
+      color: var(--app-text);
+    }
+  </style>
+</head>
+<body>
+  <div class="page container">
+    <div class="card">
+      <h1>SQL Template Generator</h1>
+      <div class="muted">
+        Paste a SQL template with placeholders like <code>{tipaltiid}</code>, <code>{externalid}</code>, <code>{instanceid}</code>.
+        Upload a CSV, and the tool will generate one SQL query per row by replacing placeholders using the CSV headers.
+      </div>
+    </div>
+
+    <div class="card">
+      <label for="sql-template">SQL template</label>
+      <textarea id="sql-template" placeholder="Write your SQL template here...&#10;&#10;Example:&#10;INSERT INTO ... VALUES ('{tipaltiid}', '{externalid}', {instanceid}, GETDATE());"></textarea>
+
+      <div class="filebox">
+        <div class="muted">CSV file:</div>
+        <input type="file" id="file-input" />
+      </div>
+
+      <div class="actions">
+        <button onclick="generateQueries()">Generate Queries</button>
+        <button id="copy-button" onclick="copyToClipboard()">Copy to Clipboard</button>
+      </div>
+
+      <label for="output">Generated output</label>
+      <textarea id="output" placeholder="Generated SQL queries will appear here..." readonly></textarea>
+    </div>
+  </div>
+
+  <script>
+    function generateQueries() {
+      const sqlTemplate = document.getElementById('sql-template').value;
+      const fileInput = document.getElementById('file-input').files[0];
+
+      if (!sqlTemplate || !fileInput) {
+        alert('Please provide both a SQL template and a CSV file.');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        const csvData = event.target.result;
+        const lines = csvData.split('\n').filter(line => line.trim() !== '');
+        const headers = lines[0].split(',').map(header => header.trim());
+        let output = '';
+
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(',').map(value => value.trim());
+          let query = sqlTemplate;
+
+          headers.forEach((header, index) => {
+            const placeholder = new RegExp(`\\{${header}\\}`, 'g');
+            query = query.replace(placeholder, values[index] || '');
+          });
+
+          output += query + '\n\n';
+        }
+
+        document.getElementById('output').value = output.trim();
+      };
+
+      reader.readAsText(fileInput);
+    }
+
+    function copyToClipboard() {
+      const output = document.getElementById('output');
+      output.select();
+      document.execCommand('copy');
+
+      const copyButton = document.getElementById('copy-button');
+      copyButton.classList.add('copied');
+      copyButton.textContent = 'Copied ✅';
+
+      setTimeout(() => {
+        copyButton.classList.remove('copied');
+        copyButton.textContent = 'Copy to Clipboard';
+      }, 2000);
+    }
+  </script>
+</body>
+</html>
