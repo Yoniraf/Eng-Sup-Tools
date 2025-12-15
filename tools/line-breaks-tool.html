@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Line Breaks • String Tools</title>
+  <style>
+    :root{
+      --tk-bg: #f2f4f7;
+      --tk-surface: #ffffff;
+      --tk-border: #d0d7de;
+      --tk-text: #111827;
+      --tk-muted: #6b7280;
+      --tk-header: #202e37;
+      --tk-accent: #fdbf2e;
+      --tk-accent-text: #1f2937;
+      --tk-radius: 14px;
+      --tk-shadow: 0 10px 30px rgba(0,0,0,.08);
+      --tk-font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      --tk-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    *{box-sizing:border-box}
+    body{ margin:0; font-family:var(--tk-font); color:var(--tk-text); background:var(--tk-bg); }
+    .tk-topbar{ background: var(--tk-header); color:#fff; padding:14px 18px; font-weight:800; display:flex; justify-content:center; align-items:center; letter-spacing:.2px; }
+    .tk-shell{ max-width:1100px; margin:18px auto 34px; padding:0 14px; }
+    .tk-card{ background:var(--tk-surface); border:1px solid var(--tk-border); border-radius:var(--tk-radius); box-shadow:var(--tk-shadow); padding:16px; }
+    .tk-grid{ display:grid; gap:14px; grid-template-columns:1fr; }
+    @media (min-width:980px){ .tk-grid{ grid-template-columns:1fr 440px; } }
+    label{ font-size:13px; color:var(--tk-muted); display:block; margin-bottom:6px; }
+    textarea, input[type="text"]{ width:100%; border:1px solid var(--tk-border); border-radius:10px; padding:10px 12px; outline:none; background:#fff; font-size:13px; }
+    textarea{ min-height:210px; resize:vertical; font-family:var(--tk-mono); }
+    input[type="text"]{ font-family:var(--tk-font); }
+    textarea:focus, input[type="text"]:focus{ border-color: rgba(253,191,46,.85); box-shadow: 0 0 0 3px rgba(253,191,46,.25); }
+    .tk-sub{ margin-top:10px; font-size:12px; color:var(--tk-muted); display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+    .tk-panel{ border:1px solid var(--tk-border); border-radius:12px; padding:12px; background: rgba(17,24,39,.03); }
+    .tk-panel h3{ margin:0 0 10px; font-size:13px; }
+    .tk-section-title{ margin: 10px 0 6px; font-size:12px; color:var(--tk-muted); font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
+    .tk-option{ display:flex; gap:8px; align-items:flex-start; padding:7px 6px; border-radius:10px; }
+    .tk-option:hover{ background: rgba(0,0,0,.03); }
+    .tk-option input{ flex:0 0 auto; margin-top:2px; }
+    .tk-option .txt{ font-size:13px; line-height:1.2; }
+    .tk-inline{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; width:100%; }
+    .tk-inline .txt{ flex: 0 0 auto; }
+    .tk-inline input[type="text"]{ flex: 1 1 140px; max-width: 230px; }
+    .tk-actions{ display:flex; gap:10px; justify-content:flex-start; margin-top:12px; }
+    .tk-btn{ border:1px solid transparent; border-radius:10px; padding:10px 14px; font-weight:800; font-size:13px; cursor:pointer; user-select:none; }
+    .tk-btn-primary{ background:var(--tk-accent); color:var(--tk-accent-text); }
+    .tk-btn-primary:hover{ filter: brightness(.97); }
+    .tk-btn-ghost{ background:#2b2f33; color:#fff; border-color: rgba(255,255,255,.08); }
+    .tk-btn-ghost:hover{ filter: brightness(1.05); }
+    .tk-result-wrap{ display:grid; gap:12px; grid-template-columns:1fr; align-items:stretch; }
+    @media (min-width:980px){ .tk-result-wrap{ grid-template-columns:1fr 160px; } }
+    .tk-copy{ background:var(--tk-accent); border-radius:12px; border:1px solid rgba(0,0,0,.06); font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; text-align:center; padding:14px; min-height:86px; color:var(--tk-accent-text); }
+    .tk-copy:hover{ filter: brightness(.98); }
+    .tk-note{ margin-top: 10px; padding: 10px 12px; border: 1px dashed var(--tk-border); border-radius: 12px; font-size: 12px; color: var(--tk-muted); background: rgba(255,255,255,.6); }
+    .tk-toast{ position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: rgba(17,24,39,.92); color: #fff; padding: 10px 12px; border-radius: 999px; font-size: 13px; box-shadow: 0 12px 30px rgba(0,0,0,.25); opacity: 0; pointer-events:none; transition: opacity .18s ease; }
+    .tk-toast.show{ opacity: 1; }
+    .tk-disabled{ opacity:.55; pointer-events:none; }
+    .tk-small{ font-size:12px; color:var(--tk-muted); }
+    code{ font-family: var(--tk-mono); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="tk-topbar">String Tools • Line Breaks</div>
+
+  <div class="tk-shell">
+    <div class="tk-card">
+      <div class="tk-grid">
+        <div>
+          <label for="lb_input">Text to edit:</label>
+          <textarea id="lb_input" spellcheck="false" placeholder="Paste your text here..."></textarea>
+          <div class="tk-sub">
+            <div id="lb_stats_in">0 chars • 0 items</div>
+            <div class="tk-small">Paste values separated by lines, commas, or spaces.</div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <label for="lb_output">Result:</label>
+          <div class="tk-result-wrap">
+            <textarea id="lb_output" spellcheck="false" readonly placeholder="Your result will appear here..."></textarea>
+            <button class="tk-copy" id="lb_copy" type="button">Copy to clipboard</button>
+          </div>
+          <div class="tk-sub">
+            <div id="lb_stats_out">0 chars • 0 items</div>
+            <div id="lb_message" class="tk-small"></div>
+          </div>
+        </div>
+
+        <div class="tk-panel">
+          <h3>Choose Settings:</h3>
+
+          <div class="tk-section-title">Delimiter conversion</div>
+
+          <div id="lb_modes">
+            <div class="tk-option">
+              <input type="radio" name="lb_mode" id="m_lb_to_comma" value="lb_to_comma" checked>
+              <div class="txt"><strong>Replace line breaks</strong> with comma</div>
+            </div>
+            <div class="tk-option">
+              <input type="radio" name="lb_mode" id="m_comma_to_lb" value="comma_to_lb">
+              <div class="txt"><strong>Replace commas</strong> with line breaks</div>
+            </div>
+            <div class="tk-option">
+              <input type="radio" name="lb_mode" id="m_lb_to_space" value="lb_to_space">
+              <div class="txt"><strong>Replace line breaks</strong> with blank space</div>
+            </div>
+            <div class="tk-option">
+              <input type="radio" name="lb_mode" id="m_comma_to_space" value="comma_to_space">
+              <div class="txt"><strong>Replace commas</strong> with blank space</div>
+            </div>
+            <div class="tk-option">
+              <input type="radio" name="lb_mode" id="m_lb_to_custom" value="lb_to_custom">
+              <div class="tk-inline">
+                <div class="txt"><strong>Replace line breaks</strong> with custom text:</div>
+                <input id="lb_custom_text" type="text" placeholder="e.g. | or , " />
+              </div>
+            </div>
+          </div>
+
+          <div class="tk-section-title">Per-item formatting</div>
+
+          <div class="tk-option">
+            <input type="checkbox" id="lb_trim" checked>
+            <div class="txt">Trim whitespace around items</div>
+          </div>
+
+          <div class="tk-option">
+            <input type="checkbox" id="lb_remove_dupes">
+            <div class="txt">Remove duplicate items</div>
+          </div>
+
+          <div class="tk-option">
+            <input type="checkbox" id="lb_wrap_each">
+            <div class="tk-inline">
+              <div class="txt">Wrap each item with</div>
+              <input id="lb_before" type="text" placeholder="before (e.g. ')" />
+              <div class="txt">and</div>
+              <input id="lb_after" type="text" placeholder="after (e.g. ')" />
+            </div>
+          </div>
+
+          <div class="tk-option">
+            <input type="checkbox" id="lb_one_per_line" checked>
+            <div class="txt">For comma output, put each item on a new line</div>
+          </div>
+
+          <div class="tk-option">
+            <input type="checkbox" id="lb_trailing_comma" checked>
+            <div class="txt">For comma output, add a trailing comma after the last item</div>
+          </div>
+
+          <div class="tk-section-title">SQL helper</div>
+
+          <div class="tk-option">
+            <input type="checkbox" id="lb_sql_in">
+            <div class="txt">Insert into <code>IN ( ... )</code> (defaults to single-quoting each value)</div>
+          </div>
+
+          <div class="tk-actions">
+            <button class="tk-btn tk-btn-primary" id="lb_execute" type="button">Execute</button>
+            <button class="tk-btn tk-btn-ghost" id="lb_reset" type="button">Reset</button>
+          </div>
+
+          <div class="tk-note">
+            <strong>Item detection:</strong>
+            <div>• If input contains line breaks → per line</div>
+            <div>• Else if contains commas → per comma</div>
+            <div>• Else → whitespace</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tk_toast" class="tk-toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (function(){
+      const $ = (id) => document.getElementById(id);
+
+      const inputEl  = $('lb_input');
+      const outputEl = $('lb_output');
+      const msgEl    = $('lb_message');
+      const statsIn  = $('lb_stats_in');
+      const statsOut = $('lb_stats_out');
+      const toastEl  = $('tk_toast');
+
+      function toast(text){
+        toastEl.textContent = text;
+        toastEl.classList.add('show');
+        clearTimeout(toastEl._t);
+        toastEl._t = setTimeout(() => toastEl.classList.remove('show'), 1400);
+      }
+
+      function normalizeNewlines(s){ return (s ?? '').replace(/\r\n?/g, '\n'); }
+
+      function getMode(){
+        const el = document.querySelector('input[name="lb_mode"]:checked');
+        return el ? el.value : 'lb_to_comma';
+      }
+
+      function splitByLines(text){ return normalizeNewlines(text).split('\n'); }
+      function splitByCommas(text){ return (text ?? '').split(','); }
+      function splitByWhitespace(text){ return (text ?? '').split(/\s+/); }
+
+      function detectItems(text){
+        const t = normalizeNewlines(text || '');
+        if (t.includes('\n')) return { items: splitByLines(t), kind: 'lines' };
+        if (t.includes(','))  return { items: splitByCommas(t), kind: 'commas' };
+        return { items: splitByWhitespace(t), kind: 'spaces' };
+      }
+
+      function parseItems(text, mode){
+        const t = normalizeNewlines(text || '');
+        let items, kind;
+        if (mode.startsWith('lb_to_')) { items = splitByLines(t); kind = 'lines'; }
+        else if (mode.startsWith('comma_to_')) { items = splitByCommas(t); kind = 'commas'; }
+        else ({ items, kind } = detectItems(t));
+        return { items, kind };
+      }
+
+      function trimIfNeeded(items){
+        if (!$('lb_trim').checked) return items.slice();
+        return items.map(s => (s ?? '').trim());
+      }
+
+      function removeEmpties(items){
+        return items.filter(s => (s ?? '').trim().length > 0);
+      }
+
+      function removeDuplicates(items){
+        if (!$('lb_remove_dupes').checked) return items;
+        const seen = new Set();
+        const out = [];
+        for (const v of items){
+          const key = v; // after trim
+          if (seen.has(key)) continue;
+          seen.add(key);
+          out.push(v);
+        }
+        return out;
+      }
+
+      function applyWrap(items){
+        if (!$('lb_wrap_each').checked) return items;
+        const before = $('lb_before').value ?? '';
+        const after  = $('lb_after').value ?? '';
+        return items.map(v => `${before}${v}${after}`);
+      }
+
+      // Always single-quote for SQL IN (per your requirement)
+      function sqlSingleQuote(value){
+        const v = (value ?? '').trim();
+        const escaped = v.replace(/'/g, "''");
+        return `'${escaped}'`;
+      }
+
+      function outputDelimiterForMode(mode){
+        if (mode === 'lb_to_comma') return ',';
+        if (mode === 'comma_to_lb') return '\n';
+        if (mode === 'lb_to_space' || mode === 'comma_to_space') return ' ';
+        if (mode === 'lb_to_custom') return ($('lb_custom_text').value ?? '');
+        return '\n';
+      }
+
+      function formatCommaJoin(items){
+        const onePerLine = $('lb_one_per_line').checked;
+        const delim = onePerLine ? ',\n' : ', ';
+        let out = items.join(delim);
+        if ($('lb_trailing_comma').checked && items.length){
+          out += ',';
+        }
+        return out;
+      }
+
+      function execute(){
+        const mode = getMode();
+        const raw = inputEl.value || '';
+
+        const parsed = parseItems(raw, mode);
+        let items = trimIfNeeded(parsed.items);
+        items = removeEmpties(items);
+        items = removeDuplicates(items);
+
+        if ($('lb_sql_in').checked){
+          const quoted = items.map(sqlSingleQuote);
+          const onePerLine = $('lb_one_per_line').checked;
+          const inside = onePerLine ? quoted.join(',\n') : quoted.join(', ');
+          const inBody = onePerLine ? `\n${inside}\n` : inside;
+          outputEl.value = `IN (${inBody})`;
+          msgEl.textContent = `Processed ${items.length} item(s) (detected: ${parsed.kind}) → SQL IN.`;
+          updateStats();
+          return;
+        }
+
+        const wrapped = applyWrap(items);
+        const outDelim = outputDelimiterForMode(mode);
+
+        let result = '';
+        if (outDelim === ','){
+          result = formatCommaJoin(wrapped);
+        } else {
+          result = wrapped.join(outDelim);
+        }
+
+        outputEl.value = result;
+        msgEl.textContent = `Processed ${items.length} item(s) (detected: ${parsed.kind}).`;
+        updateStats();
+      }
+
+      async function copyOut(){
+        const text = outputEl.value || '';
+        if (!text.trim()){ toast('Nothing to copy'); return; }
+        try{
+          await navigator.clipboard.writeText(text);
+          toast('Copied');
+        }catch(e){
+          outputEl.focus();
+          outputEl.select();
+          document.execCommand('copy');
+          window.getSelection()?.removeAllRanges?.();
+          toast('Copied');
+        }
+      }
+
+      function updateStats(){
+        const inText = inputEl.value || '';
+        const outText = outputEl.value || '';
+        const inItems = removeEmpties(trimIfNeeded(detectItems(inText).items));
+        const outItems = removeEmpties(trimIfNeeded(detectItems(outText).items));
+        statsIn.textContent  = `${inText.length} chars • ${inItems.length} items`;
+        statsOut.textContent = `${outText.length} chars • ${outItems.length} items`;
+      }
+
+      function setSqlDefaults(){
+        if ($('lb_sql_in').checked){
+          // SQL IN overrides output format; disable the delimiter conversion radios.
+          $('lb_modes').classList.add('tk-disabled');
+          // For SQL, typical formatting is single-line; but you can still choose one-per-line.
+          $('lb_trailing_comma').checked = false;
+        } else {
+          $('lb_modes').classList.remove('tk-disabled');
+          // Restore defaults for comma formatting
+          $('lb_one_per_line').checked = true;
+          $('lb_trailing_comma').checked = true;
+        }
+      }
+
+      function reset(){
+        inputEl.value = '';
+        outputEl.value = '';
+        msgEl.textContent = '';
+        $('m_lb_to_comma').checked = true;
+        $('lb_custom_text').value = '';
+
+        $('lb_trim').checked = true;
+        $('lb_remove_dupes').checked = false;
+
+        $('lb_wrap_each').checked = false;
+        $('lb_before').value = '';
+        $('lb_after').value = '';
+
+        $('lb_one_per_line').checked = true;
+        $('lb_trailing_comma').checked = true;
+
+        $('lb_sql_in').checked = false;
+        setSqlDefaults();
+        updateStats();
+        toast('Reset');
+      }
+
+      $('lb_execute').addEventListener('click', execute);
+      $('lb_reset').addEventListener('click', reset);
+      $('lb_copy').addEventListener('click', copyOut);
+      $('lb_sql_in').addEventListener('change', setSqlDefaults);
+      inputEl.addEventListener('input', updateStats);
+
+      updateStats();
+      setSqlDefaults();
+    })();
+  </script>
+</body>
+</html>
