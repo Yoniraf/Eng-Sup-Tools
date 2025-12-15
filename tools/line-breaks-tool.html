@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Line Breaks • String Tools</title>
+  <title>Line Breaks</title>
+
   <!-- Load Team Toolbox theme (adjust path if needed) -->
   <link rel="stylesheet" href="../assets/app.css" />
 
@@ -203,79 +204,82 @@
     code{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; }
   </style>
 </head>
-<body>
-  <div class="tk-topbar">String Tools • Line Breaks</div>
 
-  <div class="tk-shell">
-    <div class="tk-card">
-      <div class="tk-grid">
+<body>
+  <div class="lb-wrap">
+    <div class="lb-card">
+      <div class="lb-title">
+        <h2>Line Breaks</h2>
+        <div class="hint">Convert lists + format values for SQL</div>
+      </div>
+
+      <div class="lb-grid">
         <div>
-          <label for="lb_input">Text to edit:</label>
-          <textarea id="lb_input" spellcheck="false" placeholder="Paste your text here..."></textarea>
-          <div class="tk-sub">
+          <label for="lb_input">Text to edit</label>
+          <textarea id="lb_input" spellcheck="false" placeholder="Paste values here (one per line / comma-separated / space-separated)…"></textarea>
+          <div class="lb-sub">
             <div id="lb_stats_in">0 chars • 0 items</div>
-            <div class="tk-small">Paste values separated by lines, commas, or spaces.</div>
+            <div>Tip: enable “Wrap each item” to add <code>'...'</code>.</div>
           </div>
 
           <div style="height:12px"></div>
 
-          <label for="lb_output">Result:</label>
-          <div class="tk-result-wrap">
-            <textarea id="lb_output" spellcheck="false" readonly placeholder="Your result will appear here..."></textarea>
-            <button class="tk-copy" id="lb_copy" type="button">Copy to clipboard</button>
+          <label for="lb_output">Result</label>
+          <div class="lb-result">
+            <textarea id="lb_output" spellcheck="false" readonly placeholder="Result will appear here…"></textarea>
+            <button class="lb-copy" id="lb_copy" type="button">Copy to clipboard</button>
           </div>
-          <div class="tk-sub">
+          <div class="lb-sub">
             <div id="lb_stats_out">0 chars • 0 items</div>
-            <div id="lb_message" class="tk-small"></div>
+            <div id="lb_message"></div>
           </div>
         </div>
 
-        <div class="tk-panel">
-          <h3>Choose Settings:</h3>
+        <div class="lb-panel">
+          <h3>Settings</h3>
 
-          <div class="tk-section-title">Delimiter conversion</div>
-
+          <div class="lb-section">Delimiter conversion</div>
           <div id="lb_modes">
-            <div class="tk-option">
-              <input type="radio" name="lb_mode" id="m_lb_to_comma" value="lb_to_comma" checked>
+            <div class="lb-option">
+              <input type="radio" name="lb_mode" value="lb_to_comma" id="m_lb_to_comma" checked>
               <div class="txt"><strong>Replace line breaks</strong> with comma</div>
             </div>
-            <div class="tk-option">
-              <input type="radio" name="lb_mode" id="m_comma_to_lb" value="comma_to_lb">
+            <div class="lb-option">
+              <input type="radio" name="lb_mode" value="comma_to_lb" id="m_comma_to_lb">
               <div class="txt"><strong>Replace commas</strong> with line breaks</div>
             </div>
-            <div class="tk-option">
-              <input type="radio" name="lb_mode" id="m_lb_to_space" value="lb_to_space">
+            <div class="lb-option">
+              <input type="radio" name="lb_mode" value="lb_to_space" id="m_lb_to_space">
               <div class="txt"><strong>Replace line breaks</strong> with blank space</div>
             </div>
-            <div class="tk-option">
-              <input type="radio" name="lb_mode" id="m_comma_to_space" value="comma_to_space">
+            <div class="lb-option">
+              <input type="radio" name="lb_mode" value="comma_to_space" id="m_comma_to_space">
               <div class="txt"><strong>Replace commas</strong> with blank space</div>
             </div>
-            <div class="tk-option">
-              <input type="radio" name="lb_mode" id="m_lb_to_custom" value="lb_to_custom">
-              <div class="tk-inline">
+            <div class="lb-option">
+              <input type="radio" name="lb_mode" value="lb_to_custom" id="m_lb_to_custom">
+              <div class="lb-inline">
                 <div class="txt"><strong>Replace line breaks</strong> with custom text:</div>
                 <input id="lb_custom_text" type="text" placeholder="e.g. | or , " />
               </div>
             </div>
           </div>
 
-          <div class="tk-section-title">Per-item formatting</div>
+          <div class="lb-section">Per-item formatting</div>
 
-          <div class="tk-option">
+          <div class="lb-option">
             <input type="checkbox" id="lb_trim" checked>
             <div class="txt">Trim whitespace around items</div>
           </div>
 
-          <div class="tk-option">
+          <div class="lb-option">
             <input type="checkbox" id="lb_remove_dupes">
             <div class="txt">Remove duplicate items</div>
           </div>
 
-          <div class="tk-option">
+          <div class="lb-option">
             <input type="checkbox" id="lb_wrap_each">
-            <div class="tk-inline">
+            <div class="lb-inline">
               <div class="txt">Wrap each item with</div>
               <input id="lb_before" type="text" placeholder="before (e.g. ')" />
               <div class="txt">and</div>
@@ -283,29 +287,28 @@
             </div>
           </div>
 
-          <div class="tk-option">
+          <div class="lb-option">
             <input type="checkbox" id="lb_one_per_line" checked>
             <div class="txt">For comma output, put each item on a new line</div>
           </div>
 
-          <div class="tk-option">
+          <div class="lb-option">
             <input type="checkbox" id="lb_trailing_comma" checked>
             <div class="txt">For comma output, add a trailing comma after the last item</div>
           </div>
 
-          <div class="tk-section-title">SQL helper</div>
-
-          <div class="tk-option">
+          <div class="lb-section">SQL helper</div>
+          <div class="lb-option">
             <input type="checkbox" id="lb_sql_in">
-            <div class="txt">Insert into <code>IN ( ... )</code> (defaults to single-quoting each value)</div>
+            <div class="txt">Insert into <code>IN ( ... )</code> (auto single-quotes each value)</div>
           </div>
 
-          <div class="tk-actions">
-            <button class="tk-btn tk-btn-primary" id="lb_execute" type="button">Execute</button>
-            <button class="tk-btn tk-btn-ghost" id="lb_reset" type="button">Reset</button>
+          <div class="lb-actions">
+            <button class="lb-btn primary" id="lb_execute" type="button">Execute</button>
+            <button class="lb-btn" id="lb_reset" type="button">Reset</button>
           </div>
 
-          <div class="tk-note">
+          <div class="lb-note">
             <strong>Item detection:</strong>
             <div>• If input contains line breaks → per line</div>
             <div>• Else if contains commas → per comma</div>
@@ -316,7 +319,7 @@
     </div>
   </div>
 
-  <div id="tk_toast" class="tk-toast" role="status" aria-live="polite"></div>
+  <div id="lb_toast" class="lb-toast" role="status" aria-live="polite"></div>
 
   <script>
     (function(){
@@ -327,7 +330,7 @@
       const msgEl    = $('lb_message');
       const statsIn  = $('lb_stats_in');
       const statsOut = $('lb_stats_out');
-      const toastEl  = $('tk_toast');
+      const toastEl  = $('lb_toast');
 
       function toast(text){
         toastEl.textContent = text;
@@ -337,12 +340,10 @@
       }
 
       function normalizeNewlines(s){ return (s ?? '').replace(/\r\n?/g, '\n'); }
-
       function getMode(){
         const el = document.querySelector('input[name="lb_mode"]:checked');
         return el ? el.value : 'lb_to_comma';
       }
-
       function splitByLines(text){ return normalizeNewlines(text).split('\n'); }
       function splitByCommas(text){ return (text ?? '').split(','); }
       function splitByWhitespace(text){ return (text ?? '').split(/\s+/); }
@@ -367,19 +368,14 @@
         if (!$('lb_trim').checked) return items.slice();
         return items.map(s => (s ?? '').trim());
       }
-
-      function removeEmpties(items){
-        return items.filter(s => (s ?? '').trim().length > 0);
-      }
-
+      function removeEmpties(items){ return items.filter(s => (s ?? '').trim().length > 0); }
       function removeDuplicates(items){
         if (!$('lb_remove_dupes').checked) return items;
         const seen = new Set();
         const out = [];
         for (const v of items){
-          const key = v; // after trim
-          if (seen.has(key)) continue;
-          seen.add(key);
+          if (seen.has(v)) continue;
+          seen.add(v);
           out.push(v);
         }
         return out;
@@ -392,7 +388,6 @@
         return items.map(v => `${before}${v}${after}`);
       }
 
-      // Always single-quote for SQL IN (per your requirement)
       function sqlSingleQuote(value){
         const v = (value ?? '').trim();
         const escaped = v.replace(/'/g, "''");
@@ -411,9 +406,7 @@
         const onePerLine = $('lb_one_per_line').checked;
         const delim = onePerLine ? ',\n' : ', ';
         let out = items.join(delim);
-        if ($('lb_trailing_comma').checked && items.length){
-          out += ',';
-        }
+        if ($('lb_trailing_comma').checked && items.length) out += ',';
         return out;
       }
 
@@ -440,14 +433,10 @@
         const wrapped = applyWrap(items);
         const outDelim = outputDelimiterForMode(mode);
 
-        let result = '';
-        if (outDelim === ','){
-          result = formatCommaJoin(wrapped);
-        } else {
-          result = wrapped.join(outDelim);
-        }
+        outputEl.value = (outDelim === ',')
+          ? formatCommaJoin(wrapped)
+          : wrapped.join(outDelim);
 
-        outputEl.value = result;
         msgEl.textContent = `Processed ${items.length} item(s) (detected: ${parsed.kind}).`;
         updateStats();
       }
@@ -478,13 +467,10 @@
 
       function setSqlDefaults(){
         if ($('lb_sql_in').checked){
-          // SQL IN overrides output format; disable the delimiter conversion radios.
-          $('lb_modes').classList.add('tk-disabled');
-          // For SQL, typical formatting is single-line; but you can still choose one-per-line.
+          $('lb_modes').classList.add('lb-disabled');
           $('lb_trailing_comma').checked = false;
         } else {
-          $('lb_modes').classList.remove('tk-disabled');
-          // Restore defaults for comma formatting
+          $('lb_modes').classList.remove('lb-disabled');
           $('lb_one_per_line').checked = true;
           $('lb_trailing_comma').checked = true;
         }
@@ -494,6 +480,7 @@
         inputEl.value = '';
         outputEl.value = '';
         msgEl.textContent = '';
+
         $('m_lb_to_comma').checked = true;
         $('lb_custom_text').value = '';
 
