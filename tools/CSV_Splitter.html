@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CSV Splitter</title>
+  <style>
+    :root{
+      --app-bg:#0b1220;
+      --app-surface:#0f172a;
+      --app-surface-2:#111c33;
+      --app-border:rgba(148,163,184,.18);
+      --app-text:#e5e7eb;
+      --app-muted:#94a3b8;
+      --app-accent:#60a5fa;
+      --app-accent-2:#22c55e;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --radius:14px;
+      --radius-sm:10px;
+      --font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--font);
+      background: radial-gradient(1200px 700px at 10% 0%, rgba(96,165,250,.12), transparent 55%),
+                  radial-gradient(900px 600px at 90% 20%, rgba(34,197,94,.10), transparent 55%),
+                  var(--app-bg);
+      color:var(--app-text);
+    }
+
+    .app{
+      min-height:100%;
+      padding:28px 16px 40px;
+      display:flex;
+      justify-content:center;
+    }
+
+    .shell{ width:min(960px, 100%); }
+
+    .header{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:16px;
+    }
+
+    .title{
+      margin:0;
+      font-size:26px;
+      line-height:1.2;
+      letter-spacing:.2px;
+    }
+
+    .subtitle{
+      margin:6px 0 0;
+      color:var(--app-muted);
+      font-size:14px;
+      line-height:1.4;
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), transparent 70%), var(--app-surface);
+      border:1px solid var(--app-border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:16px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:14px;
+    }
+
+    .field label{
+      display:block;
+      font-size:13px;
+      color:var(--app-muted);
+      margin-bottom:8px;
+    }
+
+    input[type="number"]{
+      width:100%;
+      padding:12px 12px;
+      border-radius:var(--radius-sm);
+      border:1px solid var(--app-border);
+      background:var(--app-surface-2);
+      color:var(--app-text);
+      outline:none;
+      font-size:14px;
+    }
+
+    input[type="number"]::placeholder{ color: rgba(148,163,184,.55); }
+
+    input[type="number"]:focus{
+      border-color: rgba(96,165,250,.55);
+      box-shadow: 0 0 0 4px rgba(96,165,250,.12);
+    }
+
+    .hint{
+      margin-top:8px;
+      font-size:12px;
+      color:rgba(148,163,184,.75);
+    }
+
+    .dropzone{
+      background: linear-gradient(180deg, rgba(255,255,255,.02), transparent 70%), var(--app-surface-2);
+      border:1px dashed rgba(148,163,184,.30);
+      border-radius:var(--radius);
+      padding:16px;
+      cursor:pointer;
+      user-select:none;
+      outline:none;
+      transition: transform .08s ease, border-color .12s ease, box-shadow .12s ease, background .12s ease;
+    }
+    .dropzone:hover{ border-color: rgba(96,165,250,.55); }
+    .dropzone:focus-visible{
+      border-color: rgba(96,165,250,.75);
+      box-shadow: 0 0 0 4px rgba(96,165,250,.12);
+    }
+    .dropzone.is-dragover{
+      border-color: rgba(34,197,94,.70);
+      box-shadow: 0 0 0 4px rgba(34,197,94,.12);
+      transform: translateY(-1px);
+    }
+
+    .dz-title{
+      font-size:14px;
+      font-weight:600;
+      color:var(--app-text);
+      margin:0;
+    }
+
+    .dz-sub{
+      font-size:12px;
+      color:rgba(148,163,184,.8);
+      margin:4px 0 0;
+    }
+
+    .filemeta{
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:var(--radius-sm);
+      border:1px solid rgba(148,163,184,.18);
+      background: rgba(0,0,0,.12);
+      color: rgba(229,231,235,.92);
+      font-size:12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      overflow:hidden;
+    }
+
+    .filemeta .name{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .badge{
+      font-size:11px;
+      color:rgba(229,231,235,.9);
+      background: rgba(96,165,250,.18);
+      border:1px solid rgba(96,165,250,.30);
+      padding:3px 8px;
+      border-radius:999px;
+      flex:0 0 auto;
+    }
+
+    .actions{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-top:4px;
+      flex-wrap:wrap;
+    }
+
+    button{
+      appearance:none;
+      border:1px solid rgba(96,165,250,.35);
+      background: linear-gradient(180deg, rgba(96,165,250,.22), rgba(96,165,250,.10));
+      color:var(--app-text);
+      padding:10px 14px;
+      border-radius:var(--radius-sm);
+      cursor:pointer;
+      font-weight:600;
+      font-size:14px;
+      transition: transform .06s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
+    }
+
+    button:hover{
+      border-color: rgba(96,165,250,.60);
+      box-shadow: 0 8px 20px rgba(0,0,0,.25);
+      transform: translateY(-1px);
+    }
+
+    button:active{ transform: translateY(0px); box-shadow:none; }
+
+    button:focus-visible{
+      outline:none;
+      box-shadow: 0 0 0 4px rgba(96,165,250,.14);
+    }
+
+    .result{
+      margin-top:10px;
+      font-size:13px;
+      color:rgba(229,231,235,.92);
+      min-height:18px;
+    }
+
+    .result.muted{ color: var(--app-muted); }
+
+    .smallrow{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:14px;
+    }
+
+    @media (min-width: 720px){
+      .smallrow{
+        grid-template-columns: 1fr 220px;
+        align-items:end;
+      }
+    }
+
+    .sr-only{
+      position:absolute;
+      width:1px;
+      height:1px;
+      padding:0;
+      margin:-1px;
+      overflow:hidden;
+      clip:rect(0,0,0,0);
+      white-space:nowrap;
+      border:0;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="shell">
+      <div class="header">
+        <div>
+          <h1 class="title">CSV Splitter</h1>
+          <p class="subtitle">Split a CSV into multiple files (header is included in every part).</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <form id="csvForm">
+          <div class="grid">
+            <div class="field">
+              <label for="csvFile">CSV file</label>
+
+              <div id="dropZone" class="dropzone" tabindex="0" role="button" aria-label="Upload CSV (drag and drop or click)">
+                <p class="dz-title">Drag & drop your CSV here</p>
+                <p class="dz-sub">or click to choose a file</p>
+
+                <div id="fileMeta" class="filemeta">
+                  <div class="name" id="fileName">No file selected</div>
+                  <div class="badge" id="fileBadge">.csv</div>
+                </div>
+              </div>
+
+              <!-- Keep the original input (same id) for compatibility -->
+              <input class="sr-only" type="file" id="csvFile" accept=".csv,text/csv" />
+            </div>
+
+            <div class="smallrow">
+              <div class="field">
+                <label for="linesPerFile">Lines per file</label>
+                <input type="number" id="linesPerFile" min="1" required placeholder="e.g. 1000" />
+                <div class="hint">Tip: “Lines per file” counts data rows (the header is always added on top).</div>
+              </div>
+
+              <div class="actions">
+                <button type="button" onclick="splitCSV()">Split CSV</button>
+              </div>
+            </div>
+
+            <div id="result" class="result muted"></div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Keep the existing splitCSV() API, but allow drag & drop selection too.
+    let selectedFile = null;
+
+    const fileInput = document.getElementById('csvFile');
+    const dropZone = document.getElementById('dropZone');
+    const fileNameEl = document.getElementById('fileName');
+    const resultDiv = document.getElementById('result');
+
+    function formatBytes(bytes) {
+      if (!Number.isFinite(bytes)) return '';
+      const units = ['B','KB','MB','GB'];
+      let i = 0;
+      let n = bytes;
+      while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+      return `${n.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+    }
+
+    function setSelectedFile(file) {
+      selectedFile = file || null;
+
+      if (selectedFile) {
+        fileNameEl.textContent = `${selectedFile.name} • ${formatBytes(selectedFile.size)}`;
+        resultDiv.textContent = '';
+        resultDiv.classList.add('muted');
+      } else {
+        fileNameEl.textContent = 'No file selected';
+        resultDiv.textContent = '';
+        resultDiv.classList.add('muted');
+      }
+    }
+
+    fileInput.addEventListener('change', () => {
+      const f = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+      setSelectedFile(f);
+    });
+
+    function isCSV(file) {
+      if (!file) return false;
+      const nameOk = /\.csv$/i.test(file.name || '');
+      const typeOk = !file.type || file.type === 'text/csv' || file.type === 'application/vnd.ms-excel';
+      return nameOk || typeOk;
+    }
+
+    function openFilePicker() {
+      fileInput.click();
+    }
+
+    dropZone.addEventListener('click', openFilePicker);
+    dropZone.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openFilePicker();
+      }
+    });
+
+    ['dragenter', 'dragover'].forEach(evt => {
+      dropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add('is-dragover');
+      });
+    });
+
+    ['dragleave', 'dragend'].forEach(evt => {
+      dropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('is-dragover');
+      });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.remove('is-dragover');
+
+      const files = e.dataTransfer && e.dataTransfer.files ? e.dataTransfer.files : null;
+      const f = files && files.length ? files[0] : null;
+
+      if (!f) return;
+
+      if (!isCSV(f)) {
+        alert('Please drop a CSV file (.csv).');
+        return;
+      }
+
+      // Note: we keep selectedFile separately because fileInput.files is read-only in many browsers.
+      setSelectedFile(f);
+    });
+
+    // Default UI state
+    setSelectedFile(null);
+
+    function splitCSV() {
+      const linesPerFileInput = document.getElementById('linesPerFile');
+
+      const file = selectedFile || (fileInput.files && fileInput.files[0] ? fileInput.files[0] : null);
+      if (!file) {
+        alert('Please upload a CSV file.');
+        return;
+      }
+      if (!isCSV(file)) {
+        alert('Please upload a valid CSV file (.csv).');
+        return;
+      }
+
+      const linesPerFile = parseInt(linesPerFileInput.value, 10);
+      if (!linesPerFile || linesPerFile <= 0) {
+        alert('Please enter a valid number of lines per file.');
+        return;
+      }
+
+      const reader = new FileReader();
+      resultDiv.textContent = 'Processing… your browser will download multiple files.';
+      resultDiv.classList.remove('muted');
+
+      reader.onload = function (event) {
+        const csvContent = event.target.result || '';
+        const csvRows = csvContent.split(/\r?\n/).filter(row => row.trim() !== '');
+
+        if (csvRows.length === 0) {
+          alert('The CSV appears to be empty.');
+          resultDiv.textContent = '';
+          resultDiv.classList.add('muted');
+          return;
+        }
+
+        const header = csvRows[0];
+        const dataRows = csvRows.slice(1);
+
+        let fileCount = 1;
+        let currentLines = [];
+
+        const processBatch = (index) => {
+          if (index >= dataRows.length) {
+            resultDiv.textContent = 'Done. Check your downloads.';
+            return;
+          }
+
+          for (let i = index; i < index + linesPerFile && i < dataRows.length; i++) {
+            currentLines.push(dataRows[i]);
+          }
+
+          const outputData = [header, ...currentLines];
+          downloadCSVFile(outputData, file.name, fileCount, () => {
+            fileCount++;
+            currentLines = [];
+            processBatch(index + linesPerFile);
+          });
+        };
+
+        processBatch(0);
+      };
+
+      reader.onerror = function () {
+        alert('Failed to read the file.');
+        resultDiv.textContent = '';
+        resultDiv.classList.add('muted');
+      };
+
+      reader.readAsText(file);
+    }
+
+    function downloadCSVFile(data, originalFileName, fileCount, callback) {
+      const blob = new Blob([data.join('\n')], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${originalFileName.replace(/\.csv$/i, '')}_part${fileCount}.csv`;
+      document.body.appendChild(a);
+
+      // Keep the original "click then cleanup then callback" approach
+      a.addEventListener('click', () => {
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          callback();
+        }, 100);
+      });
+
+      a.click();
+    }
+  </script>
+</body>
+</html>
