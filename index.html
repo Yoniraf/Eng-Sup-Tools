@@ -12,8 +12,6 @@
       <div class="brand">
         <button id="toggle-sidebar" class="icon-btn" type="button" title="Show/Hide sidebar" aria-label="Toggle sidebar">☰</button>
         <button id="toggle-topbar" class="icon-btn" type="button" title="Show/Hide top bar" aria-label="Toggle top bar">▴</button>
-        <button id="toggle-sidebar" class="icon-btn" type="button" title="Show/Hide sidebar" aria-label="Toggle sidebar">☰</button>
-        <button id="toggle-topbar" class="icon-btn" type="button" title="Show/Hide top bar" aria-label="Toggle top bar">▴</button>
         <div class="logo" aria-hidden="true"></div>
         <div class="title">
           <strong>Team Toolbox</strong>
@@ -29,6 +27,11 @@
           <input id="search" type="search" placeholder="Search tools…" />
         </div>
         <span class="pill">build: <span id="build-pill">—</span></span>
+        <div class="tool-actions">
+          <a id="open-new-tab" class="btn" href="#" target="_blank" rel="noopener">↗ Open in new tab</a>
+          <button id="copy-link" class="btn" type="button">Copy link</button>
+        </div>
+
       </div>
     </header>
 
@@ -39,20 +42,7 @@
       </aside>
 
       <section class="content">
-        <div class="viewerbar">
-          <div class="current">
-            <div class="toolname" id="current-name">—</div>
-            <div class="tooldesc" id="current-desc">—</div>
-          </div>
-          <div class="viewer-actions">
-            <a id="open-new-tab" class="btn" href="#" target="_blank" rel="noopener">
-              ↗ Open in new tab
-            </a>
-            <button id="copy-link" class="btn" type="button">Copy link</button>
-          </div>
-        </div>
-
-        <div class="viewer">
+<div class="viewer">
           <div id="loading" class="loading">Loading tool…</div>
           <div id="frame-host" class="frame-host" aria-label="Tool viewer"></div>
         </div>
