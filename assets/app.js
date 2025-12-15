@@ -7,10 +7,7 @@
     list: document.getElementById('tool-list'),
     group: document.getElementById('tool-group'),
     frameHost: document.getElementById('frame-host'),
-    loading: document.getElementById('loading'),
-    currentName: document.getElementById('current-name'),
-    currentDesc: document.getElementById('current-desc'),
-    openNewTab: document.getElementById('open-new-tab'),
+    loading: document.getElementById('loading'),    openNewTab: document.getElementById('open-new-tab'),
     copyLink: document.getElementById('copy-link'),
     search: document.getElementById('search'),
     build: document.getElementById('build-pill'),
@@ -112,12 +109,10 @@
   }
 
   function setViewer(tool) {
-    els.currentName.textContent = tool.title;
-    els.currentDesc.textContent = tool.description || '';
-
     const absolute = resolveToolPath(tool.path);
     els.openNewTab.href = absolute;
     els.openNewTab.setAttribute('aria-label', `Open ${tool.title} in new tab`);
+    document.title = `${tool.title} — Team Toolbox`;
 
     // Hide all frames; show/create current tool frame.
     let frame = framesById.get(tool.id);
