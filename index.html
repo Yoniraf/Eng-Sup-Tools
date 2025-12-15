@@ -10,6 +10,10 @@
   <div class="app">
     <header class="topbar">
       <div class="brand">
+        <button id="toggle-sidebar" class="icon-btn" type="button" title="Show/Hide sidebar" aria-label="Toggle sidebar">☰</button>
+        <button id="toggle-topbar" class="icon-btn" type="button" title="Show/Hide top bar" aria-label="Toggle top bar">▴</button>
+        <button id="toggle-sidebar" class="icon-btn" type="button" title="Show/Hide sidebar" aria-label="Toggle sidebar">☰</button>
+        <button id="toggle-topbar" class="icon-btn" type="button" title="Show/Hide top bar" aria-label="Toggle top bar">▴</button>
         <div class="logo" aria-hidden="true"></div>
         <div class="title">
           <strong>Team Toolbox</strong>
@@ -50,7 +54,7 @@
 
         <div class="viewer">
           <div id="loading" class="loading">Loading tool…</div>
-          <iframe id="tool-frame" title="Tool viewer"></iframe>
+          <div id="frame-host" class="frame-host" aria-label="Tool viewer"></div>
         </div>
       </section>
     </div>
