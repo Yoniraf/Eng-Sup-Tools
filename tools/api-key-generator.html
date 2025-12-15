@@ -58,6 +58,7 @@
       <div class="row" style="margin-top:12px">
         <button onclick="generateHash()">Generate hash</button>
         <button onclick="copyHash()">Copy hash</button>
+        <button class="secondary" type="button" onclick="clearAll()">Clear</button>
       </div>
 
       <label for="output">Hash output</label>
@@ -103,6 +104,14 @@
       document.execCommand('copy');
       alert('Hash copied to clipboard!');
     }
-  </script>
+  
+
+    function clearAll(){
+      ['payerName','idap','timestamp','eat','key','output'].forEach(id=>{
+        const el=document.getElementById(id);
+        if (el) el.value='';
+      });
+    }
+</script>
 </body>
 </html>

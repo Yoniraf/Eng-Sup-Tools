@@ -225,3 +225,70 @@ a{color:inherit}
   .sidebar{display:none}
   .brand{min-width:auto}
 }
+
+
+/* --- Dashboard chrome controls --- */
+.icon-btn{
+  height:34px;
+  width:34px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:10px;
+  border:1px solid var(--app-border);
+  background: rgba(2,6,23,.35);
+  color: var(--app-text);
+  cursor:pointer;
+}
+.icon-btn:hover{border-color:rgba(96,165,250,.45); box-shadow:0 0 0 4px rgba(96,165,250,.10)}
+.icon-btn:active{transform: translateY(1px)}
+.icon-btn:focus{outline:none}
+.icon-btn:focus-visible{outline:2px solid rgba(96,165,250,.55); outline-offset:2px}
+
+.frame-host{
+  height:100%;
+  width:100%;
+}
+.frame-host iframe{
+  width:100%;
+  height:100%;
+  border:0;
+  display:none;
+}
+
+/* Collapsible topbar & sidebar */
+.app.topbar-collapsed{
+  grid-template-rows:40px 1fr;
+}
+.app.topbar-collapsed .top-actions{
+  display:none;
+}
+.app.topbar-collapsed .brand .title span{
+  display:none;
+}
+.app.topbar-collapsed .brand .title strong{
+  font-size:13px;
+}
+
+.app.sidebar-collapsed .layout{
+  grid-template-columns: 64px 1fr;
+}
+.app.sidebar-collapsed .sidebar{
+  padding: 10px 6px;
+}
+.app.sidebar-collapsed .group-title{
+  display:none;
+}
+.app.sidebar-collapsed .tool-meta,
+.app.sidebar-collapsed .tool-item .tags{
+  display:none;
+}
+.app.sidebar-collapsed .tool-icon{
+  width: 44px;
+  height: 44px;
+  font-size: 16px;
+}
+.app.sidebar-collapsed .tool-item{
+  justify-content:center;
+  padding: 8px 6px;
+}

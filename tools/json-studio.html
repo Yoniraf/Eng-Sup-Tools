@@ -303,15 +303,24 @@
       border-top: 1px solid var(--app-border);
       background: #020617;
       padding: 10px;
-      max-height: 45vh;
       overflow: auto;
       display: none; /* toggled via JS */
+      height: 45vh;
+      min-height: 220px;
+      max-height: 85vh;
+      resize: vertical; /* user can drag to resize bottom panels */
     }
 
     .log-tool-inner {
       max-width: 900px;
       margin: 0 auto;
       color: #e5e7eb;
+    }
+
+    .log-tool-inner.wide {
+      max-width: 1200px;
+      margin: 0;
+      width: 100%;
     }
 
     .log-tool-inner h1 {
@@ -497,6 +506,9 @@
         <button id="btn-export-right-csv" class="icon-btn" title="Export right JSON as CSV">⬇ Right</button>
       </div>
       <div class="toolbar-group">
+        <button id="btn-clear-all" class="icon-btn" title="Clear editors and panels">🧹 Clear</button>
+      </div>
+      <div class="toolbar-group">
         <button id="toggle-log-tool" class="icon-btn" title="Show/Hide Coralogix log reconstructor">
           🧩 Log Reconstructor
         </button>
@@ -592,7 +604,7 @@
     </div>
   
     <div id="extract-tool-container" class="log-tool-container">
-      <div class="log-tool-inner">
+      <div class="log-tool-inner wide">
         <h1>Nested JSON Key-Value Extractor</h1>
 
         <div class="log-card">
@@ -1334,6 +1346,45 @@
 	      extractToolContainer.style.display = extractVisible ? "block" : "none";
 	      toggleExtractToolBtn.textContent = extractVisible ? "🧰 Key-Value Extractor ▲" : "🧰 Key-Value Extractor";
 	    });
+
+    // --- Clear current tool state (does not remove any functionality) -------
+    const clearAllBtn = document.getElementById("btn-clear-all");
+    if (clearAllBtn) {
+      clearAllBtn.addEventListener("click", () => {
+        // Clear active tab editors
+        const tab = getActiveTab();
+        tab.left.content = { text: "" };
+        tab.right.content = { text: "" };
+
+        leftEditor.updateProps({ content: tab.left.content, mode: tab.left.mode });
+        rightEditor.updateProps({ content: tab.right.content, mode: tab.right.mode });
+
+        // Reset diff panel
+        const diffOut = document.getElementById("diff-output");
+        if (diffOut) diffOut.textContent = "No comparison run yet.";
+
+        // Reset log reconstructor UI (file + status)
+        const fileInput = document.getElementById("fileInput");
+        if (fileInput) fileInput.value = "";
+        const status = document.getElementById("status");
+        if (status) status.textContent = "Waiting for file...";
+        const logInject = document.getElementById("log-inject");
+        if (logInject) logInject.style.display = "none";
+
+        // Reset extractor UI
+        const exIn = document.getElementById("extractor-input");
+        if (exIn) exIn.value = "";
+        const exKeys = document.getElementById("extractor-keys");
+        if (exKeys) exKeys.innerHTML = "";
+        const exPrev = document.getElementById("extractor-preview");
+        if (exPrev) exPrev.textContent = "";
+        const exOut = document.getElementById("extractor-json-output");
+        if (exOut) exOut.value = "";
+
+        saveState();
+      });
+    }
+
 
     // --- Log reconstructor logic (from logpartrestructure.html) -----------
     let lastReconstructedJson = null; // pretty JSON, if valid

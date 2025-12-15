@@ -1,10 +1,12 @@
 (async function () {
   const toolsUrl = new URL('./assets/tools.json', location.href).toString();
+  const UI_KEY = 'teamToolbox_ui_v1';
 
   const els = {
+    app: document.querySelector('.app'),
     list: document.getElementById('tool-list'),
     group: document.getElementById('tool-group'),
-    frame: document.getElementById('tool-frame'),
+    frameHost: document.getElementById('frame-host'),
     loading: document.getElementById('loading'),
     currentName: document.getElementById('current-name'),
     currentDesc: document.getElementById('current-desc'),
@@ -12,10 +14,16 @@
     copyLink: document.getElementById('copy-link'),
     search: document.getElementById('search'),
     build: document.getElementById('build-pill'),
+    toggleSidebar: document.getElementById('toggle-sidebar'),
+    toggleTopbar: document.getElementById('toggle-topbar'),
   };
 
   let tools = [];
   let activeId = null;
+
+  // Cache iframes per tool so switching tools keeps their state.
+  const framesById = new Map();
+  const loadedById = new Set();
 
   function getQueryTool() {
     const u = new URL(location.href);
@@ -25,27 +33,42 @@
   function setQueryTool(id) {
     const u = new URL(location.href);
     u.searchParams.set('tool', id);
-    history.replaceState({}, '', u);
+    history.pushState({}, '', u.toString());
+  }
+
+  function resolveToolPath(path) {
+    // Resolve relative to the current page.
+    return new URL(path, location.href).toString();
   }
 
   function iconFor(tool) {
-    // Simple emoji fallback. Keep it text-only (no external icon dependency).
-    return tool.icon || '🧰';
+    const name = (tool.title || tool.id || '?').trim();
+    const parts = name.split(/\s+/).filter(Boolean);
+    const a = (parts[0] || '?')[0] || '?';
+    const b = (parts[1] || '')[0] || (parts[0] || '?')[1] || '';
+    return (a + b).toUpperCase();
+  }
+
+  function updateActiveStyles() {
+    const items = els.list.querySelectorAll('a.tool-item');
+    items.forEach(a => {
+      a.classList.toggle('active', a.dataset.id === activeId);
+    });
   }
 
   function render(list) {
     els.list.innerHTML = '';
     list.forEach(tool => {
-      const li = document.createElement('li');
-      li.className = 'tool-item';
-      li.dataset.toolId = tool.id;
-
       const a = document.createElement('a');
-      a.href = tool.path;
-      a.title = 'Open in dashboard (right-click for new tab)';
+      a.href = resolveToolPath(tool.path);
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.dataset.id = tool.id;
+      a.className = 'tool-item';
+      a.title = tool.title;
 
       a.addEventListener('click', (e) => {
-        // Preserve normal behavior for ctrl/cmd click (open in new tab)
+        // Allow normal new-tab behavior if modifier keys are used / middle click.
         if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
         e.preventDefault();
         activate(tool.id, true);
@@ -77,38 +100,54 @@
 
       meta.appendChild(name);
       meta.appendChild(desc);
-      if (tags.childNodes.length) meta.appendChild(tags);
+      meta.appendChild(tags);
 
       a.appendChild(icon);
       a.appendChild(meta);
-      li.appendChild(a);
-      els.list.appendChild(li);
+
+      els.list.appendChild(a);
     });
 
     updateActiveStyles();
   }
 
-  function updateActiveStyles() {
-    document.querySelectorAll('.tool-item').forEach(li => {
-      li.classList.toggle('active', li.dataset.toolId === activeId);
-    });
-  }
-
-  function resolveToolPath(path) {
-    // Make relative paths robust under GitHub Pages subpaths.
-    return new URL(path, location.href).toString();
-  }
-
   function setViewer(tool) {
     els.currentName.textContent = tool.title;
     els.currentDesc.textContent = tool.description || '';
-    const absolute = resolveToolPath(tool.path);
 
+    const absolute = resolveToolPath(tool.path);
     els.openNewTab.href = absolute;
     els.openNewTab.setAttribute('aria-label', `Open ${tool.title} in new tab`);
 
-    els.loading.style.display = 'flex';
-    els.frame.src = absolute;
+    // Hide all frames; show/create current tool frame.
+    let frame = framesById.get(tool.id);
+    if (!frame) {
+      frame = document.createElement('iframe');
+      frame.title = tool.title;
+      frame.dataset.toolId = tool.id;
+      frame.src = absolute;
+
+      frame.addEventListener('load', () => {
+        loadedById.add(tool.id);
+        if (activeId === tool.id) {
+          els.loading.style.display = 'none';
+        }
+      });
+
+      framesById.set(tool.id, frame);
+      els.frameHost.appendChild(frame);
+    }
+
+    framesById.forEach((f) => (f.style.display = 'none'));
+
+    // Show loading only if the frame hasn't completed its first load yet.
+    if (!loadedById.has(tool.id)) {
+      els.loading.style.display = 'flex';
+    } else {
+      els.loading.style.display = 'none';
+    }
+
+    frame.style.display = 'block';
   }
 
   function activate(id, updateUrl) {
@@ -122,6 +161,96 @@
     setViewer(tool);
   }
 
+  // --- UI: collapsible sidebar & topbar -----------------------------------
+  function loadUiState() {
+    try {
+      const raw = localStorage.getItem(UI_KEY);
+      if (!raw) return { sidebarCollapsed: true, topbarCollapsed: true };
+      const s = JSON.parse(raw);
+      return {
+        sidebarCollapsed: typeof s.sidebarCollapsed === 'boolean' ? s.sidebarCollapsed : true,
+        topbarCollapsed: typeof s.topbarCollapsed === 'boolean' ? s.topbarCollapsed : true,
+      };
+    } catch {
+      return { sidebarCollapsed: true, topbarCollapsed: true };
+    }
+  }
+
+  function saveUiState(state) {
+    try {
+      localStorage.setItem(UI_KEY, JSON.stringify(state));
+    } catch { /* ignore */ }
+  }
+
+  let uiState = loadUiState();
+
+  function applyUiState() {
+    els.app.classList.toggle('sidebar-collapsed', uiState.sidebarCollapsed);
+    els.app.classList.toggle('topbar-collapsed', uiState.topbarCollapsed);
+    // Toggle icon direction
+    if (els.toggleTopbar) els.toggleTopbar.textContent = uiState.topbarCollapsed ? '▾' : '▴';
+  }
+
+  function toggleSidebar() {
+    uiState.sidebarCollapsed = !uiState.sidebarCollapsed;
+    saveUiState(uiState);
+    applyUiState();
+  }
+
+  function toggleTopbar() {
+    uiState.topbarCollapsed = !uiState.topbarCollapsed;
+    saveUiState(uiState);
+    applyUiState();
+  }
+
+  if (els.toggleSidebar) els.toggleSidebar.addEventListener('click', toggleSidebar);
+  if (els.toggleTopbar) els.toggleTopbar.addEventListener('click', toggleTopbar);
+
+  // --- Search filtering ----------------------------------------------------
+  function filterTools(q) {
+    const query = (q || '').trim().toLowerCase();
+    if (!query) return tools;
+
+    return tools.filter(t => {
+      const hay = [
+        t.id,
+        t.title,
+        t.description,
+        ...(t.tags || []),
+      ].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(query);
+    });
+  }
+
+  if (els.search) {
+    els.search.addEventListener('input', () => {
+      render(filterTools(els.search.value));
+    });
+  }
+
+  // Copy link
+  if (els.copyLink) {
+    els.copyLink.addEventListener('click', async () => {
+      const u = new URL(location.href);
+      u.searchParams.set('tool', activeId || '');
+      try {
+        await navigator.clipboard.writeText(u.toString());
+        els.copyLink.textContent = 'Copied';
+        setTimeout(() => (els.copyLink.textContent = 'Copy link'), 900);
+      } catch {
+        // fallback
+        prompt('Copy this link:', u.toString());
+      }
+    });
+  }
+
+  window.addEventListener('popstate', () => {
+    const requested = getQueryTool();
+    if (requested && tools.some(t => t.id === requested)) {
+      activate(requested, false);
+    }
+  });
+
   async function loadTools() {
     const res = await fetch(toolsUrl, { cache: 'no-store' });
     if (!res.ok) throw new Error(`Failed to load tools.json (${res.status})`);
@@ -130,55 +259,12 @@
     if (!tools.length) throw new Error('tools.json has no tools');
     els.build.textContent = data.build || 'local';
 
+    applyUiState();
     render(tools);
 
-    // Deep link support
     const requested = getQueryTool();
     activate(requested && tools.some(t => t.id === requested) ? requested : tools[0].id, true);
   }
-
-  // Viewer load state
-  els.frame.addEventListener('load', () => {
-    els.loading.style.display = 'none';
-  });
-
-  // Copy link
-  els.copyLink.addEventListener('click', async () => {
-    const u = new URL(location.href);
-    u.searchParams.set('tool', activeId || '');
-    try {
-      await navigator.clipboard.writeText(u.toString());
-      els.copyLink.textContent = 'Copied ✅';
-      setTimeout(() => (els.copyLink.textContent = 'Copy link'), 1200);
-    } catch {
-      // Fallback
-      prompt('Copy this link:', u.toString());
-    }
-  });
-
-  // Search/filter
-  els.search.addEventListener('input', () => {
-    const q = els.search.value.trim().toLowerCase();
-    if (!q) return render(tools);
-
-    const filtered = tools.filter(t => {
-      const hay = `${t.title} ${t.description || ''} ${(t.tags || []).join(' ')}`.toLowerCase();
-      return hay.includes(q);
-    });
-
-    render(filtered);
-
-    // If the active tool is not in filtered list, don't change it automatically.
-    updateActiveStyles();
-  });
-
-  // React to back/forward navigation
-  window.addEventListener('popstate', () => {
-    const requested = getQueryTool();
-    if (requested && tools.some(t => t.id === requested)) {
-      activate(requested, false);
-    }
-  });
 
   // Init
   try {

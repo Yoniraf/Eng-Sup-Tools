@@ -43,6 +43,7 @@
       <div class="actions">
         <button onclick="generateQueries()">Generate Queries</button>
         <button id="copy-button" onclick="copyToClipboard()">Copy to Clipboard</button>
+        <button id="clearBtn" class="secondary" type="button" onclick="clearAll()">Clear</button>
       </div>
 
       <label for="output">Generated output</label>
@@ -99,6 +100,14 @@
         copyButton.textContent = 'Copy to Clipboard';
       }, 2000);
     }
-  </script>
+  
+
+    function clearAll(){
+      document.getElementById('sql-template').value = '';
+      const file = document.getElementById('file-input');
+      if (file) file.value = '';
+      document.getElementById('output').value = '';
+    }
+</script>
 </body>
 </html>

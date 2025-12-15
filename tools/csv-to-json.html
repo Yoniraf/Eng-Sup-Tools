@@ -27,6 +27,7 @@
       <div class="actions">
         <button id="convertBtn" onclick="convertCSVtoJSON()">Convert</button>
         <button id="copyBtn" onclick="copyToClipboard()">Copy</button>
+        <button id="clearBtn" class="secondary" onclick="clearAll()">Clear</button>
       </div>
 
       <div id="copyMessage" class="hint muted"></div>
@@ -67,6 +68,12 @@
         copyMessage.textContent = '';
       }, 2000);
     }
-  </script>
+  
+
+    function clearAll(){
+      document.getElementById('csvInput').value = '';
+      document.getElementById('jsonOutput').value = '';
+    }
+</script>
 </body>
 </html>
