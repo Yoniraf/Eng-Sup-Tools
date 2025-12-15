@@ -51,12 +51,20 @@
       ]
     },
     {
-  "id": "String Tools • Line Breaks",
-  "title": "String Tools • Line Breaks",
-  "description": "",
-  "path": "./tools/line-breaks-tool.html",
-  "icon": "\ud83d\udd10",
-  "tags": ["LineBreak", "SQL"]
-}
+      "id": "String Tools • Line Breaks",
+      "title": "String Tools • Line Breaks",
+      "description": "",
+      "path": "./tools/line-breaks-tool.html",
+      "icon": "\ud83d\udd10",
+      "tags": ["LineBreak", "SQL"]
+    },
+    {
+      "id": "CSV_Splitter",
+      "title": "CSV_Splitter",
+      "description": "",
+      "path": "./tools/CSV_Splitter.html",
+      "icon": "\ud83d\udd10",
+      "tags": ["CSV"]
+    }
   ]
 }
