@@ -500,6 +500,9 @@
         <button id="toggle-log-tool" class="icon-btn" title="Show/Hide Coralogix log reconstructor">
           🧩 Log Reconstructor
         </button>
+        <button id="toggle-extract-tool" class="icon-btn" title="Show/Hide Nested JSON Key-Value Extractor">
+          🧰 Key-Value Extractor
+        </button>
       </div>
     </div>
 
@@ -759,6 +762,9 @@
 
     const toggleLogToolBtn = document.getElementById("toggle-log-tool");
     const logToolContainer = document.getElementById("log-tool-container");
+
+	    const toggleExtractToolBtn = document.getElementById("toggle-extract-tool");
+	    const extractToolContainer = document.getElementById("extract-tool-container");
 
     const logInjectContainer = document.getElementById("log-inject");
     const injectLeftBtn = document.getElementById("inject-left");
@@ -1320,6 +1326,14 @@
       logToolContainer.style.display = logVisible ? "block" : "none";
       toggleLogToolBtn.textContent = logVisible ? "🧩 Log Reconstructor ▲" : "🧩 Log Reconstructor";
     });
+
+	    // --- Toggle extractor panel -------------------------------------------
+	    let extractVisible = false;
+	    toggleExtractToolBtn.addEventListener("click", () => {
+	      extractVisible = !extractVisible;
+	      extractToolContainer.style.display = extractVisible ? "block" : "none";
+	      toggleExtractToolBtn.textContent = extractVisible ? "🧰 Key-Value Extractor ▲" : "🧰 Key-Value Extractor";
+	    });
 
     // --- Log reconstructor logic (from logpartrestructure.html) -----------
     let lastReconstructedJson = null; // pretty JSON, if valid
