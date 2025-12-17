@@ -15,6 +15,14 @@
       ]
     },
     {
+      "id": "String Tools • Line Breaks",
+      "title": "String Tools • Line Breaks",
+      "description": "Makes the work with lists, strings, and SQL queries a bit more friendly",
+      "path": "./tools/line-breaks-tool.html",
+      "icon": "\ud83d\udd10",
+      "tags": ["LineBreak", "SQL"]
+    },
+    {
       "id": "csv-to-json",
       "title": "TSV/CSV \u2192 JSON Converter",
       "description": "Quick converter for tab-delimited (TSV) or simple CSV-like text to JSON.",
@@ -39,6 +47,30 @@
       ]
     },
     {
+      "id": "retrySepecificSyncEngine",
+      "title": "Retry Specific SyncEngine",
+      "description": "Bulk retry for sync Engine",
+      "path": "./tools/retrySepecificSyncEngine.html",
+      "icon": "\ud83d\udd10",
+      "tags": ["Retry Specific", "syncEngine"]
+    },
+    {
+      "id": "bulkRecordStateUpdateSyncEngine",
+      "title": "Bulk Update Record State",
+      "description": "Bulk retry for sync Engine",
+      "path": "./tools/bulkRecordStateUpdateSyncEngine.html",
+      "icon": "\ud83d\udd10",
+      "tags": ["Bulk Update", "syncEngine"]
+    },
+    {
+      "id": "CaseWHenSQLQUey",
+      "title": "SQL CASE WHEN Generator",
+      "description": "when you need your sql query to return in the exact same order of the items appearing in your IN query",
+      "path": "./tools/CaseWHenSQLQUey.html",
+      "icon": "\ud83d\udd10",
+      "tags": ["Bulk Update", "syncEngine"]
+    },
+    {
       "id": "api-key-generator",
       "title": "API Key / Hash Generator",
       "description": "Generate an HMAC-SHA256 hash from payerName + idap + timestamp + eat using a secret key.",
@@ -49,14 +81,6 @@
         "Security",
         "Hash"
       ]
-    },
-    {
-      "id": "String Tools • Line Breaks",
-      "title": "String Tools • Line Breaks",
-      "description": "",
-      "path": "./tools/line-breaks-tool.html",
-      "icon": "\ud83d\udd10",
-      "tags": ["LineBreak", "SQL"]
     },
     {
       "id": "CSV_Splitter",
