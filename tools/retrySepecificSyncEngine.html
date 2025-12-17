@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sync Engine Batch Retry Tool</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  :root{
+    --app-bg:#0b1220;
+    --app-surface:#0f172a;
+    --app-surface-2:#111c33;
+    --app-border:rgba(148,163,184,.18);
+    --app-text:#e5e7eb;
+    --app-muted:#94a3b8;
+    --app-accent:#60a5fa;
+    --app-accent-2:#22c55e;
+  }
+
+  /* Base page */
+  body{ background:linear-gradient(180deg,var(--app-bg),#0a0f1c) !important; color:var(--app-text) !important; }
+  body.bg-gray-50{ background:linear-gradient(180deg,var(--app-bg),#0a0f1c) !important; }
+
+  /* Common Tailwind utility overrides (keep layout; only change palette) */
+  .bg-white{ background-color:var(--app-surface) !important; }
+  .bg-gray-50:not(body){ background-color:var(--app-surface-2) !important; }
+  .bg-gray-200{ background-color:rgba(148,163,184,.20) !important; }
+  .bg-gray-900{ background-color:#0c1426 !important; }
+
+  .text-gray-900{ color:var(--app-text) !important; }
+  .text-gray-100{ color:var(--app-text) !important; }
+  .text-gray-600, .text-gray-500{ color:var(--app-muted) !important; }
+  .text-gray-400{ color:rgba(148,163,184,.75) !important; }
+
+  .border, .border-gray-300{ border-color:var(--app-border) !important; }
+
+  .bg-blue-600{ background-color:var(--app-accent) !important; }
+  .text-blue-600{ color:var(--app-accent) !important; }
+
+  /* Inputs */
+  input, textarea, select{
+    background:#0c1426 !important;
+    color:var(--app-text) !important;
+    border-color:var(--app-border) !important;
+  }
+  input::placeholder, textarea::placeholder{ color:rgba(148,163,184,.75) !important; }
+  input:focus, textarea:focus, select:focus{
+    outline:none !important;
+    border-color:rgba(96,165,250,.65) !important;
+    box-shadow:0 0 0 3px rgba(96,165,250,.18) !important;
+  }
+
+  /* Subtle panels */
+  .shadow-sm{ box-shadow: 0 10px 30px rgba(0,0,0,.35) !important; }
+</style>
+</head>
+<body class="min-h-screen bg-gray-50 text-gray-900">
+  <main class="max-w-6xl mx-auto p-6">
+    <header class="mb-6">
+      <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">Sync Engine <span class="text-blue-600">Batch Retry</span> Tool</h1>
+      <p class="text-gray-600">Upload IDs (text or CSV) and execute batch API calls with automatic retry logic.</p>
+    </header>
+
+    <section class="grid md:grid-cols-2 gap-6 mb-6">
+      <!-- Left: Configuration -->
+      <div class="space-y-4">
+        <div class="rounded-2xl border bg-white p-4 shadow-sm">
+          <h2 class="text-lg font-semibold mb-4">API Configuration</h2>
+          
+          <label class="block mb-2">
+            <span class="text-sm font-medium">Environment</span>
+            <select id="environment" class="mt-1 w-full rounded-xl border border-gray-300 bg-white p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+              <option value="production">Production</option>
+              <option value="sandbox">Sandbox</option>
+            </select>
+          </label>
+
+          <label class="block mb-2">
+            <span class="text-sm font-medium">Authorization Bearer Token</span>
+            <input id="authToken" type="password" placeholder="Enter bearer token" class="mt-1 w-full rounded-xl border border-gray-300 bg-white p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" />
+          </label>
+
+          <div class="grid sm:grid-cols-2 gap-4 mt-4">
+            <label class="block">
+              <span class="text-sm">recordType</span>
+              <input id="recordType" class="mt-1 w-full rounded-xl border border-gray-300 bg-white p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" value="Vendor" />
+            </label>
+            <label class="block">
+              <span class="text-sm">ID Type</span>
+              <select id="idType" class="mt-1 w-full rounded-xl border border-gray-300 bg-white p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                <option value="externalId">externalId</option>
+                <option value="tipaltiId">tipaltiId</option>
+              </select>
+            </label>
+          </div>
+          <label class="block mt-4">
+            <span class="text-sm">direction</span>
+            <input id="direction" class="mt-1 w-full rounded-xl border border-gray-300 bg-white p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" value="FromExternal" readonly />
+            <span class="text-xs text-gray-500 mt-1 block">Automatically set based on ID Type</span>
+          </label>
+        </div>
+
+        <div class="rounded-2xl border bg-white p-4 shadow-sm">
+          <h2 class="text-lg font-semibold mb-4">Batch Settings</h2>
+          
+          <label class="block mb-2">
+            <span class="text-sm font-medium">IDs per Batch</span>
+            <input id="batchSize" type="number" min="1" value="10" class="mt-1 w-full rounded-xl border border-gray-300 bg-white p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" />
+          </label>
+
+          <label class="block mb-2">
+            <span class="text-sm font-medium">Delay Between Calls (seconds)</span>
+            <input id="delaySeconds" type="number" min="0" value="2" class="mt-1 w-full rounded-xl border border-gray-300 bg-white p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" />
+          </label>
+
+          <label class="block mb-2">
+            <span class="text-sm font-medium">Max Retries per Batch</span>
+            <input id="maxRetries" type="number" min="0" value="3" class="mt-1 w-full rounded-xl border border-gray-300 bg-white p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Right: Input -->
+      <div class="space-y-4">
+        <div class="rounded-2xl border bg-white p-4 shadow-sm">
+          <h2 class="text-lg font-semibold mb-4">ID Input</h2>
+          
+          <label class="block mb-2">
+            <span class="text-sm font-medium">Upload CSV File (optional)</span>
+            <input id="csvFile" type="file" accept=".csv" class="mt-1 w-full rounded-xl border border-gray-300 bg-white p-2.5 text-sm" />
+            <span class="text-xs text-gray-500 mt-1 block">CSV should contain a column with IDs. First row will be treated as header.</span>
+          </label>
+
+          <label class="block mb-2">
+            <span class="text-sm font-medium">Or Paste IDs (newline, comma, or semicolon separated)</span>
+            <textarea id="ids" rows="12" placeholder="LVT0011620\nLVT0011621\nLVT0011622" class="mt-1 w-full rounded-xl border border-gray-300 bg-white p-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"></textarea>
+          </label>
+
+          <div class="flex flex-wrap gap-2">
+            <button id="pasteBtn" type="button" class="px-3 py-2 rounded-xl border bg-white hover:bg-gray-50 text-sm">Paste from Clipboard</button>
+            <button id="clearBtn" type="button" class="px-3 py-2 rounded-xl border bg-white hover:bg-gray-50 text-sm">Clear</button>
+          </div>
+
+          <div class="mt-3 flex flex-wrap items-center gap-5 text-sm">
+            <label class="inline-flex items-center gap-2 select-none">
+              <input id="dedupe" type="checkbox" class="rounded" checked />
+              <span>Remove duplicates</span>
+            </label>
+            <label class="inline-flex items-center gap-2 select-none">
+              <input id="trim" type="checkbox" class="rounded" checked />
+              <span>Trim whitespace</span>
+            </label>
+          </div>
+
+          <div class="mt-3 rounded-xl border bg-gray-50 p-3 text-sm">
+            <div class="flex items-center justify-between"><span class="text-gray-600">Total IDs</span> <span id="idCount" class="font-semibold">0</span></div>
+            <div class="flex items-center justify-between mt-1"><span class="text-gray-600">Unique IDs</span> <span id="uniqueCount" class="font-semibold">0</span></div>
+            <div class="flex items-center justify-between mt-1"><span class="text-gray-600">Batches</span> <span id="batchCount" class="font-semibold">0</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Execution Section -->
+    <section class="mb-6">
+      <div class="rounded-2xl border bg-white p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold">Execution</h2>
+          <div class="flex gap-2">
+            <button id="stopBtn" type="button" class="px-6 py-2 rounded-xl bg-red-600 text-white font-medium shadow hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed hidden">
+              Stop Execution
+            </button>
+            <button id="manualRetryBtn" type="button" class="px-6 py-2 rounded-xl bg-yellow-600 text-white font-medium shadow hover:bg-yellow-700 disabled:bg-gray-400 disabled:cursor-not-allowed hidden">
+              Manual Retry (Skip Wait)
+            </button>
+            <button id="executeBtn" type="button" class="px-6 py-2 rounded-xl bg-blue-600 text-white font-medium shadow hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
+              Start Execution
+            </button>
+            <button id="clearStatsBtn" type="button" class="px-6 py-2 rounded-xl border bg-white font-medium shadow hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed">
+              Clear Stats & Logs
+            </button>
+          </div>
+        </div>
+
+        <div id="progressSection" class="hidden">
+          <div class="mb-2">
+            <div class="flex items-center justify-between text-sm mb-1">
+              <span>Progress</span>
+              <span id="progressText">0 / 0</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5">
+              <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <div class="mt-4 text-sm">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-gray-600">Completed Batches:</span>
+              <span id="completedBatches" class="font-semibold text-green-600">0</span>
+            </div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-gray-600">Failed Batches:</span>
+              <span id="failedBatches" class="font-semibold text-red-600">0</span>
+            </div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-gray-600">Retries:</span>
+              <span id="retryCount" class="font-semibold text-yellow-600">0</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-gray-600">Status:</span>
+              <span id="statusText" class="font-semibold">Ready</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results Section -->
+    <section>
+      <div class="rounded-2xl border bg-white p-4 shadow-sm">
+        <h2 class="text-lg font-semibold mb-4">Results & Logs</h2>
+        <div id="results" class="rounded-xl bg-gray-900 text-gray-100 p-4 shadow-inner overflow-auto text-sm font-mono" style="max-height: 400px;">
+          <div class="text-gray-400">Waiting for execution...</div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="mt-8 text-center text-xs text-gray-500">Sync Engine Batch Retry Tool · v2.0</footer>
+  </main>
+
+  <script>
+    // --- Utility functions ---
+    function parseIds(raw, doTrim = true, dedupe = true) {
+      if (!raw) return [];
+      const parts = raw.split(/[\n,;\t|\r\s]+/g);
+      let cleaned = parts
+        .map((p) => (doTrim ? p.trim() : p))
+        .filter((p) => p && p.length > 0);
+      if (dedupe) cleaned = [...new Set(cleaned)];
+      return cleaned;
+    }
+
+    function parseCSV(csvText) {
+      const lines = csvText.split('\n').filter(line => line.trim());
+      if (lines.length === 0) return [];
+      
+      // Try to detect delimiter
+      const firstLine = lines[0];
+      let delimiter = ',';
+      if (firstLine.includes(';')) delimiter = ';';
+      else if (firstLine.includes('\t')) delimiter = '\t';
+      
+      // Parse header
+      const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
+      
+      // Find ID column (case-insensitive search for common ID column names)
+      let idColumnIndex = -1;
+      const idColumnNames = ['id', 'ids', 'externalid', 'external_id', 'external id', 'recordid', 'record_id'];
+      for (let i = 0; i < headers.length; i++) {
+        if (idColumnNames.includes(headers[i].toLowerCase())) {
+          idColumnIndex = i;
+          break;
+        }
+      }
+      
+      // If no ID column found, use first column
+      if (idColumnIndex === -1) {
+        idColumnIndex = 0;
+        console.warn('No ID column found, using first column');
+      }
+      
+      // Extract IDs from data rows
+      const ids = [];
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
+        if (values[idColumnIndex]) {
+          ids.push(values[idColumnIndex]);
+        }
+      }
+      
+      return ids;
+    }
+
+    function buildRecords(ids, recordType, direction, idType) {
+      return {
+        records: ids.map((id) => {
+          const record = { recordType, direction };
+          if (idType === 'tipaltiId') {
+            record.tipaltiId = id;
+          } else {
+            record.externalId = id;
+          }
+          return record;
+        }),
+      };
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function addLog(message, type = 'info') {
+      const resultsEl = document.getElementById('results');
+      const timestamp = new Date().toLocaleTimeString();
+      const colors = {
+        info: 'text-gray-300',
+        success: 'text-green-400',
+        error: 'text-red-400',
+        warning: 'text-yellow-400'
+      };
+      const logEntry = document.createElement('div');
+      logEntry.className = colors[type] || colors.info;
+      logEntry.textContent = `[${timestamp}] ${message}`;
+      resultsEl.appendChild(logEntry);
+      resultsEl.scrollTop = resultsEl.scrollHeight;
+    }
+
+    function updateCounts() {
+      const raw = idsEl.value;
+      const splitAll = parseIds(raw, trimEl.checked, false);
+      const ids = parseIds(raw, trimEl.checked, dedupeEl.checked);
+      const batchSize = parseInt(batchSizeEl.value) || 10;
+      
+      idCountEl.textContent = String(ids.length);
+      uniqueCountEl.textContent = String(new Set(splitAll).size);
+      batchCountEl.textContent = String(Math.ceil(ids.length / batchSize));
+    }
+
+    // --- Endpoint URLs ---
+    const ENDPOINTS = {
+      production: 'https://syncengine-syncengineservice.production.tipalti.com/api/scheduleRetrySync',
+      sandbox: 'https://syncengine-syncengineservice.sbox.tipalti.com/api/scheduleRetrySync'
+    };
+
+    // --- Elements ---
+    const idsEl = document.getElementById('ids');
+    const csvFileEl = document.getElementById('csvFile');
+    const environmentEl = document.getElementById('environment');
+    const authTokenEl = document.getElementById('authToken');
+    const recordTypeEl = document.getElementById('recordType');
+    const directionEl = document.getElementById('direction');
+    const idTypeEl = document.getElementById('idType');
+    const batchSizeEl = document.getElementById('batchSize');
+    const delaySecondsEl = document.getElementById('delaySeconds');
+    const maxRetriesEl = document.getElementById('maxRetries');
+    const dedupeEl = document.getElementById('dedupe');
+    const trimEl = document.getElementById('trim');
+    
+    const idCountEl = document.getElementById('idCount');
+    const uniqueCountEl = document.getElementById('uniqueCount');
+    const batchCountEl = document.getElementById('batchCount');
+    
+    const executeBtn = document.getElementById('executeBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const manualRetryBtn = document.getElementById('manualRetryBtn');
+    const clearStatsBtn = document.getElementById('clearStatsBtn');
+    const pasteBtn = document.getElementById('pasteBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    
+    const progressSection = document.getElementById('progressSection');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const completedBatchesEl = document.getElementById('completedBatches');
+    const failedBatchesEl = document.getElementById('failedBatches');
+    const retryCountEl = document.getElementById('retryCount');
+    const statusTextEl = document.getElementById('statusText');
+    const resultsEl = document.getElementById('results');
+
+    let isExecuting = false;
+    let shouldStop = false;
+    let shouldSkipWait = false;
+    let currentWaitingBatch = null;
+    let executionStats = {
+      completed: 0,
+      failed: 0,
+      retries: 0
+    };
+
+    // CSV file handler
+    csvFileEl.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      try {
+        const text = await file.text();
+        const ids = parseCSV(text);
+        if (ids.length === 0) {
+          alert('No IDs found in CSV file. Make sure the file has a valid ID column.');
+          return;
+        }
+        
+        // Add IDs to textarea (append if there's already content)
+        const existingIds = idsEl.value.trim();
+        const newIds = ids.join('\n');
+        idsEl.value = existingIds ? `${existingIds}\n${newIds}` : newIds;
+        updateCounts();
+        addLog(`Loaded ${ids.length} IDs from CSV file`, 'success');
+      } catch (error) {
+        alert('Error reading CSV file: ' + error.message);
+        addLog(`Error reading CSV: ${error.message}`, 'error');
+      }
+    });
+
+    // Update direction based on ID type selection
+    idTypeEl.addEventListener('change', () => {
+      const idType = idTypeEl.value;
+      if (idType === 'externalId') {
+        directionEl.value = 'FromExternal';
+      } else if (idType === 'tipaltiId') {
+        directionEl.value = 'ToExternal';
+      }
+    });
+
+    // Update counts on input
+    ['input', 'change'].forEach((ev) => {
+      idsEl.addEventListener(ev, updateCounts);
+      batchSizeEl.addEventListener(ev, updateCounts);
+      dedupeEl.addEventListener(ev, updateCounts);
+      trimEl.addEventListener(ev, updateCounts);
+    });
+
+    // Buttons
+    pasteBtn.addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        idsEl.value = text;
+        updateCounts();
+        addLog('Pasted IDs from clipboard', 'info');
+      } catch (e) {
+        alert('Unable to read from clipboard. Paste manually (Ctrl/Cmd+V).');
+      }
+    });
+
+    clearBtn.addEventListener('click', () => {
+      idsEl.value = '';
+      csvFileEl.value = '';
+      updateCounts();
+      addLog('Cleared all IDs', 'info');
+    });
+
+    // Clear stats and logs
+    clearStatsBtn.addEventListener('click', () => {
+      if (isExecuting) {
+        alert('Cannot clear stats while execution is in progress. Please stop execution first.');
+        return;
+      }
+      
+      executionStats = { completed: 0, failed: 0, retries: 0 };
+      completedBatchesEl.textContent = '0';
+      failedBatchesEl.textContent = '0';
+      retryCountEl.textContent = '0';
+      progressBar.style.width = '0%';
+      progressText.textContent = '0 / 0';
+      statusTextEl.textContent = 'Ready';
+      statusTextEl.className = 'font-semibold';
+      resultsEl.innerHTML = '<div class="text-gray-400">Waiting for execution...</div>';
+      progressSection.classList.add('hidden');
+    });
+
+    // Stop execution
+    stopBtn.addEventListener('click', () => {
+      if (isExecuting) {
+        shouldStop = true;
+        shouldSkipWait = true; // Also skip wait if stopping
+        addLog('Stop requested. Will stop after current batch completes...', 'warning');
+        stopBtn.disabled = true;
+        stopBtn.textContent = 'Stopping...';
+      }
+    });
+
+    // Manual retry button (skip wait)
+    manualRetryBtn.addEventListener('click', () => {
+      if (currentWaitingBatch !== null) {
+        shouldSkipWait = true;
+        addLog('Manual retry requested. Skipping wait period...', 'info');
+        manualRetryBtn.disabled = true;
+        manualRetryBtn.textContent = 'Retrying...';
+      }
+    });
+
+    // Execute function
+    async function executeBatchRetry() {
+      if (isExecuting) {
+        addLog('Execution already in progress', 'warning');
+        return;
+      }
+
+      // Validate inputs
+      const environment = environmentEl.value;
+      const endpointUrl = ENDPOINTS[environment];
+      const authToken = authTokenEl.value.trim();
+      const rawIds = idsEl.value;
+      
+      if (!endpointUrl) {
+        alert('Please select an environment');
+        return;
+      }
+      
+      if (!authToken) {
+        alert('Please enter an authorization bearer token');
+        return;
+      }
+      
+      const ids = parseIds(rawIds, trimEl.checked, dedupeEl.checked);
+      if (ids.length === 0) {
+        alert('Please provide at least one ID');
+        return;
+      }
+
+      const batchSize = parseInt(batchSizeEl.value) || 10;
+      const delayMs = (parseFloat(delaySecondsEl.value) || 0) * 1000;
+      const maxRetries = parseInt(maxRetriesEl.value) || 3;
+      const recordType = recordTypeEl.value || 'Vendor';
+      const idType = idTypeEl.value || 'externalId';
+      // Set direction based on ID type
+      let direction = directionEl.value || 'FromExternal';
+      if (idType === 'externalId') {
+        direction = 'FromExternal';
+        directionEl.value = direction;
+      } else if (idType === 'tipaltiId') {
+        direction = 'ToExternal';
+        directionEl.value = direction;
+      }
+
+      // Initialize execution
+      isExecuting = true;
+      shouldStop = false;
+      shouldSkipWait = false;
+      currentWaitingBatch = null;
+      executeBtn.disabled = true;
+      executeBtn.textContent = 'Executing...';
+      stopBtn.classList.remove('hidden');
+      stopBtn.disabled = false;
+      stopBtn.textContent = 'Stop Execution';
+      manualRetryBtn.classList.add('hidden');
+      manualRetryBtn.disabled = false;
+      manualRetryBtn.textContent = 'Manual Retry (Skip Wait)';
+      progressSection.classList.remove('hidden');
+      resultsEl.innerHTML = '';
+      executionStats = { completed: 0, failed: 0, retries: 0 };
+      completedBatchesEl.textContent = '0';
+      failedBatchesEl.textContent = '0';
+      retryCountEl.textContent = '0';
+      
+      // Split into batches
+      const batches = [];
+      for (let i = 0; i < ids.length; i += batchSize) {
+        batches.push(ids.slice(i, i + batchSize));
+      }
+
+      addLog(`Starting execution: ${ids.length} IDs in ${batches.length} batches`, 'info');
+      addLog(`Using ${environment} endpoint: ${endpointUrl}`, 'info');
+      statusTextEl.textContent = 'Running';
+      statusTextEl.className = 'font-semibold text-blue-600';
+
+      // Process each batch
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        // Check if stop was requested
+        if (shouldStop) {
+          addLog('Execution stopped by user', 'warning');
+          break;
+        }
+        const batch = batches[batchIndex];
+        let success = false;
+        let retryCount = 0;
+
+        while (!success && retryCount <= maxRetries) {
+          // Check if stop was requested
+          if (shouldStop) {
+            addLog(`Batch ${batchIndex + 1}/${batches.length}: Stopped by user`, 'warning');
+            break;
+          }
+          
+          try {
+            const payload = buildRecords(batch, recordType, direction, idType);
+            
+            // Log the payload with records
+            const recordsPreview = payload.records.map(r => r.externalId || r.tipaltiId).join(', ');
+            addLog(`Batch ${batchIndex + 1}/${batches.length}: Sending ${batch.length} IDs...`, 'info');
+            addLog(`Batch ${batchIndex + 1}/${batches.length}: Payload - ${JSON.stringify(payload, null, 2)}`, 'info');
+            addLog(`Batch ${batchIndex + 1}/${batches.length}: Records: ${recordsPreview}`, 'info');
+            
+            const response = await fetch(endpointUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+              },
+              body: JSON.stringify(payload)
+            });
+
+            const responseText = await response.text();
+            let responseData;
+            try {
+              responseData = JSON.parse(responseText);
+            } catch (e) {
+              responseData = { raw: responseText };
+            }
+
+            if (response.ok) {
+              addLog(`Batch ${batchIndex + 1}/${batches.length}: Success`, 'success');
+              success = true;
+              executionStats.completed++;
+            } else {
+              // Check for special error case
+              const errorMessage = responseData.err || responseData.error || responseData.raw || responseText;
+              const hasActiveSyncJob = errorMessage.includes('instance has an active sync job');
+              
+              if (hasActiveSyncJob) {
+                addLog(`Batch ${batchIndex + 1}/${batches.length}: Active sync job detected. Waiting 1 minute...`, 'warning');
+                executionStats.retries++;
+                retryCountEl.textContent = String(executionStats.retries);
+                
+                // Set current waiting batch and show manual retry button
+                currentWaitingBatch = { batchIndex, batch };
+                shouldSkipWait = false;
+                manualRetryBtn.classList.remove('hidden');
+                manualRetryBtn.disabled = false;
+                manualRetryBtn.textContent = 'Manual Retry (Skip Wait)';
+                
+                // Wait 1 minute (60000 ms) with periodic stop checks
+                const waitTime = 60000;
+                const checkInterval = 10000; // Check every 10 seconds
+                let elapsed = 0;
+                
+                while (elapsed < waitTime && !shouldStop && !shouldSkipWait) {
+                  const remainingMinutes = Math.ceil((waitTime - elapsed) / 60000);
+                  if (elapsed % 60000 === 0) { // Log every minute
+                    addLog(`Batch ${batchIndex + 1}/${batches.length}: Still waiting... ${remainingMinutes} minute(s) remaining`, 'info');
+                  }
+                  await sleep(checkInterval);
+                  elapsed += checkInterval;
+                }
+                
+                // Hide manual retry button
+                manualRetryBtn.classList.add('hidden');
+                currentWaitingBatch = null;
+                
+                if (shouldStop) {
+                  addLog(`Batch ${batchIndex + 1}/${batches.length}: Stop requested during wait period`, 'warning');
+                  break;
+                }
+                
+                if (shouldSkipWait) {
+                  addLog(`Batch ${batchIndex + 1}/${batches.length}: Manual retry requested. Retrying now...`, 'info');
+                  shouldSkipWait = false;
+                } else {
+                  addLog(`Batch ${batchIndex + 1}/${batches.length}: 1 minute wait completed. Retrying...`, 'info');
+                }
+                
+                // Retry the same batch (don't increment retryCount for this special case)
+                continue;
+              } else {
+                addLog(`Batch ${batchIndex + 1}/${batches.length}: Error (${response.status}): ${errorMessage}`, 'error');
+                
+                if (retryCount < maxRetries) {
+                  retryCount++;
+                  executionStats.retries++;
+                  retryCountEl.textContent = String(executionStats.retries);
+                  addLog(`Batch ${batchIndex + 1}/${batches.length}: Retrying (${retryCount}/${maxRetries})...`, 'warning');
+                  await sleep(delayMs);
+                } else {
+                  addLog(`Batch ${batchIndex + 1}/${batches.length}: Max retries reached. Marking as failed.`, 'error');
+                  executionStats.failed++;
+                  success = true; // Exit loop, but mark as failed
+                }
+              }
+            }
+          } catch (error) {
+            addLog(`Batch ${batchIndex + 1}/${batches.length}: Network error: ${error.message}`, 'error');
+            
+            if (retryCount < maxRetries) {
+              retryCount++;
+              executionStats.retries++;
+              retryCountEl.textContent = String(executionStats.retries);
+              addLog(`Batch ${batchIndex + 1}/${batches.length}: Retrying (${retryCount}/${maxRetries})...`, 'warning');
+              await sleep(delayMs);
+            } else {
+              addLog(`Batch ${batchIndex + 1}/${batches.length}: Max retries reached. Marking as failed.`, 'error');
+              executionStats.failed++;
+              success = true; // Exit loop, but mark as failed
+            }
+          }
+        }
+
+        // Update progress
+        const progress = ((batchIndex + 1) / batches.length) * 100;
+        progressBar.style.width = `${progress}%`;
+        progressText.textContent = `${batchIndex + 1} / ${batches.length}`;
+        completedBatchesEl.textContent = String(executionStats.completed);
+        failedBatchesEl.textContent = String(executionStats.failed);
+
+        // Delay between batches (except for last batch)
+        if (batchIndex < batches.length - 1 && delayMs > 0 && !shouldStop) {
+          await sleep(delayMs);
+        }
+      }
+
+      // Execution complete
+      const wasStopped = shouldStop;
+      isExecuting = false;
+      shouldStop = false;
+      shouldSkipWait = false;
+      currentWaitingBatch = null;
+      executeBtn.disabled = false;
+      executeBtn.textContent = 'Start Execution';
+      stopBtn.classList.add('hidden');
+      stopBtn.disabled = false;
+      stopBtn.textContent = 'Stop Execution';
+      manualRetryBtn.classList.add('hidden');
+      manualRetryBtn.disabled = false;
+      manualRetryBtn.textContent = 'Manual Retry (Skip Wait)';
+      
+      if (wasStopped) {
+        statusTextEl.textContent = 'Stopped';
+        statusTextEl.className = 'font-semibold text-yellow-600';
+        addLog(`Execution stopped by user. Success: ${executionStats.completed}, Failed: ${executionStats.failed}, Total Retries: ${executionStats.retries}`, 'warning');
+      } else {
+        statusTextEl.textContent = 'Completed';
+        statusTextEl.className = 'font-semibold text-green-600';
+        addLog(`Execution completed. Success: ${executionStats.completed}, Failed: ${executionStats.failed}, Total Retries: ${executionStats.retries}`, 
+          executionStats.failed === 0 ? 'success' : 'warning');
+      }
+    }
+
+    executeBtn.addEventListener('click', executeBatchRetry);
+
+    // Initialize direction based on initial ID type
+    const initialIdType = idTypeEl.value;
+    if (initialIdType === 'externalId') {
+      directionEl.value = 'FromExternal';
+    } else if (initialIdType === 'tipaltiId') {
+      directionEl.value = 'ToExternal';
+    }
+
+    // Initial update
+    updateCounts();
+  </script>
+</body>
+</html>

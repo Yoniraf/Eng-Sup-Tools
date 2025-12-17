@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MongoDB bulkWrite Generator — Flexible Update Direction</title>
+  <style>
+    :root {
+  --bg: #0b1220;
+  --panel: #0f172a;
+  --muted: #94a3b8;
+  --text: #e5e7eb;
+  --accent: #60a5fa;
+  --accent-2: #22c55e;
+  --danger: #ff6b6b;
+  --border: rgba(148,163,184,.18);
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+    html, body { height: 100%; }
+    body{margin:0;background:linear-gradient(180deg,#0b1220,#0a0f1c);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    .wrap{max-width:1100px;margin:40px auto;padding:0 20px}
+    h1{font-size:28px;margin:0 0 6px}
+    .sub{color:var(--muted);margin-bottom:20px}
+    .grid{display:grid;gap:16px}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    .panel .hd{padding:14px 16px;border-bottom:1px solid var(--border);font-weight:600}
+    .panel .bd{padding:16px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input, textarea, select{width:100%;background:#0c1426;color:var(--text);border:1px solid var(--border);border-radius:12px;padding:12px;font-family:inherit;outline:none}
+    textarea{min-height:160px;resize:vertical}
+    .row{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+    .btn{appearance:none;border:1px solid var(--border);background:#0f1931;color:var(--text);padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:600}
+    .btn:hover{border-color:rgba(96,165,250,.65)}
+    .btn.primary{background:rgba(96,165,250,.14);border-color:rgba(96,165,250,.55);color:#dbeafe}
+    .btn.primary:hover{border-color:rgba(96,165,250,.9)}
+    .btn.ghost{background:transparent}
+    .btn.small{padding:8px 10px;font-size:12px;border-radius:10px}
+    .muted{color:var(--muted)}
+    .mono{font-family:var(--mono);font-size:13px;line-height:1.5}
+    pre{white-space:pre-wrap;word-break:break-word}
+    .kpi{display:flex;gap:14px;flex-wrap:wrap}
+    .pill{background:#0e1730;border:1px solid var(--border);border-radius:999px;padding:8px 12px;font-size:12px}
+    .error{color:var(--danger)}
+    .footer{margin:24px 0;color:var(--muted);font-size:12px}
+    .hl{color:var(--accent-2)}
+    .tips{font-size:12px;color:var(--muted)}
+    code.ex{background:#0e1730;border:1px solid var(--border);color:#c7d2fe;padding:8px 10px;border-radius:8px;display:inline-block}
+    .switch{display:flex;align-items:center;gap:10px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>MongoDB bulkWrite Generator</h1>
+    <div class="sub">Build <span class="hl">updateOne</span> ops for <em>syncengineservice_recordsyncstates</em> with flexible update direction.
+    </div>
+
+    <div class="grid" style="grid-template-columns: 1fr 1fr; align-items:start">
+      <section class="panel">
+        <div class="hd">Input</div>
+        <div class="bd">
+          <div class="row" style="grid-template-columns: repeat(12,1fr)">
+            <div style="grid-column: span 7">
+              <label>Instance ID</label>
+              <input id="instanceId" value="689f7dad7284c46267319bc2" />
+            </div>
+            <div style="grid-column: span 5">
+              <label>Record Type</label>
+              <input id="recordType" value="Vendor" />
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px">
+            <div style="grid-column: span 12">
+              <label>Pairs (one per line)</label>
+              <textarea id="pairs" class="mono" placeholder="tipaltiId,externalId\n5600872,BA00773\n31882205,V15757"></textarea>
+              <div class="tips" style="margin-top:6px">
+                Accepted formats per line: <code class="ex">5600872,BA00773</code> · <code class="ex">5600872 BA00773</code> · <code class="ex">{"tipaltiId":"5600872","externalId":"BA00773"}</code><br/>
+                CSV with headers <code class="ex">tipaltiId,externalId</code> also works. Order: filterField,updateField.
+              </div>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px">
+            <div style="grid-column: span 12">
+              <label>Update Direction</label>
+              <div style="display:flex;gap:16px;margin-top:8px">
+                <div class="switch">
+                  <input type="radio" id="dirTipaltiToExternal" name="updateDirection" value="tipaltiToExternal" checked />
+                  <label for="dirTipaltiToExternal" style="margin:0">Filter by <span class="mono">tipaltiId</span> → Update <span class="mono">externalId</span></label>
+                </div>
+                <div class="switch">
+                  <input type="radio" id="dirExternalToTipalti" name="updateDirection" value="externalToTipalti" />
+                  <label for="dirExternalToTipalti" style="margin:0">Filter by <span class="mono">externalId</span> → Update <span class="mono">tipaltiId</span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px">
+            <div class="switch" style="grid-column: span 6">
+              <input type="checkbox" id="ordered" />
+              <label for="ordered" style="margin:0">Use <span class="mono">{ ordered: false }</span> on bulkWrite (faster, continues on errors)</label>
+            </div>
+            <div class="switch" style="grid-column: span 6">
+              <input type="checkbox" id="dedupe" checked />
+              <label for="dedupe" style="margin:0">De-duplicate by filter field</label>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:14px">
+            <div style="grid-column: span 12; display:flex; gap:10px; flex-wrap:wrap">
+              <button class="btn primary" id="btnGenerate">Generate</button>
+              <button class="btn" id="btnCopy">Copy Output</button>
+              <button class="btn" id="btnDownload">Download .js</button>
+              <button class="btn ghost" id="btnClear">Clear</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="hd">Output</div>
+        <div class="bd">
+          <div class="kpi">
+            <div class="pill"><span id="countPairs">0</span> pairs</div>
+            <div class="pill"><span id="countOps">0</span> ops</div>
+            <div class="pill"><span id="errors">0</span> errors</div>
+          </div>
+          <pre id="out" class="mono" style="margin-top:12px"></pre>
+          <div id="errBox" class="mono error" style="margin-top:10px"></div>
+          <div class="footer">Collection: <span class="mono">syncengineservice_recordsyncstates</span></div>
+        </div>
+      </section>
+    </div>
+
+    <details class="panel" style="margin-top:18px">
+      <summary class="hd" style="cursor:pointer">Example (what the tool generates)</summary>
+      <div class="bd mono">
+        <div style="margin-bottom:12px"><strong>Filter by tipaltiId → Update externalId:</strong></div>
+        <div style="margin-bottom:16px">db.getCollection("syncengineservice_recordsyncstates").bulkWrite([<br/>
+          &nbsp;&nbsp;{ updateOne: { filter: { "instanceId": "689f7dad7284c46267319bc2", "recordType": "Vendor", "tipaltiId": "5600872" }, update: { $set: { "externalId": "BA00773", "hasBeenSynced": true } } } }<br/>
+        ]);</div>
+        <div style="margin-bottom:12px"><strong>Filter by externalId → Update tipaltiId:</strong></div>
+        <div>db.getCollection("syncengineservice_recordsyncstates").bulkWrite([<br/>
+          &nbsp;&nbsp;{ updateOne: { filter: { "instanceId": "689f7dad7284c46267319bc2", "recordType": "Vendor", "externalId": "BA00773" }, update: { $set: { "tipaltiId": "5600872", "hasBeenSynced": true } } } }<br/>
+        ]);</div>
+      </div>
+    </details>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function parseCSV(text){
+      const lines = text.split(/\r?\n/).filter(l=>l.trim().length);
+      if(!lines.length) return [];
+      const first = lines[0].trim();
+      let start = 0, headers = null;
+      if(/tipaltiid\s*,\s*externalid/i.test(first)) { headers = first.split(',').map(h=>h.trim().toLowerCase()); start = 1; }
+      const data = [];
+      for(let i=start;i<lines.length;i++){
+        const raw = lines[i].trim();
+        if(!raw) continue;
+        // JSON object line
+        if(raw.startsWith('{') && raw.endsWith('}')){
+          try{
+            const obj = JSON.parse(raw);
+            if(obj.tipaltiId && obj.externalId){ data.push({ tipaltiId: String(obj.tipaltiId), externalId: String(obj.externalId) }); }
+            continue;
+          }catch(e){ /* fallthrough */ }
+        }
+        // CSV or space separated
+        const parts = raw.split(/[\s,;]+/).filter(Boolean);
+        if(parts.length >= 2){ data.push({ tipaltiId: parts[0], externalId: parts[1] }); }
+      }
+      return data;
+    }
+
+    function dedupeBy(arr, key){
+      const seen = new Set();
+      const out = [];
+      for(const x of arr){
+        const k = String(x[key]).trim();
+        if(!k || seen.has(k)) continue;
+        seen.add(k); out.push(x);
+      }
+      return out;
+    }
+
+    function getUpdateDirection(){
+      return document.querySelector('input[name="updateDirection"]:checked').value;
+    }
+
+    function validatePair(p, direction){
+      const errs = [];
+      if(direction === 'tipaltiToExternal'){
+        if(!p.tipaltiId || String(p.tipaltiId).trim()==='') errs.push('Missing tipaltiId');
+        if(!p.externalId || String(p.externalId).trim()==='') errs.push('Missing externalId');
+      } else {
+        if(!p.externalId || String(p.externalId).trim()==='') errs.push('Missing externalId');
+        if(!p.tipaltiId || String(p.tipaltiId).trim()==='') errs.push('Missing tipaltiId');
+      }
+      return errs;
+    }
+
+    function buildOps(pairs, instanceId, recordType, direction){
+      if(direction === 'tipaltiToExternal'){
+        return pairs.map(p=>({
+          updateOne: {
+            filter: { instanceId: String(instanceId), recordType: String(recordType), tipaltiId: String(p.tipaltiId) },
+            update: { $set: { externalId: String(p.externalId), hasBeenSynced: true } }
+          }
+        }));
+      } else {
+        return pairs.map(p=>({
+          updateOne: {
+            filter: { instanceId: String(instanceId), recordType: String(recordType), externalId: String(p.externalId) },
+            update: { $set: { tipaltiId: String(p.tipaltiId), hasBeenSynced: true } }
+          }
+        }));
+      }
+    }
+
+    function stringifyBulk(ops, ordered){
+      const opsStr = ops.map(op => {
+        const filter = op.updateOne.filter;
+        const update = op.updateOne.update.$set;
+        const filterKey = filter.tipaltiId ? 'tipaltiId' : 'externalId';
+        const filterValue = filter[filterKey];
+        const updateKey = update.externalId ? 'externalId' : 'tipaltiId';
+        const updateValue = update[updateKey];
+        return `  {\n    updateOne: {\n      filter: { "instanceId": "${filter.instanceId}", "recordType": "${filter.recordType}", "${filterKey}": "${filterValue}" },\n      update: { $set: { "${updateKey}": "${updateValue}", "hasBeenSynced": true } }\n    }\n  }`;
+      }).join(',\n');
+      return `db.getCollection("syncengineservice_recordsyncstates").bulkWrite([\n${opsStr}\n]${ordered ? ', { ordered: false }' : ''});`;
+    }
+
+    function generate(){
+      const instanceId = $("instanceId").value.trim();
+      const recordType = $("recordType").value.trim();
+      const raw = $("pairs").value;
+      const ordered = $("ordered").checked;
+      const direction = getUpdateDirection();
+      let pairs = parseCSV(raw);
+      const errorList = [];
+
+      // Validate
+      const valid = [];
+      for(const p of pairs){
+        const errs = validatePair(p, direction);
+        if(errs.length) errorList.push(`${p.tipaltiId||'?'} → ${p.externalId||'?'} :: ${errs.join(', ')}`); else valid.push(p);
+      }
+
+      const dedupeKey = direction === 'tipaltiToExternal' ? 'tipaltiId' : 'externalId';
+      if($("dedupe").checked) pairs = dedupeBy(valid, dedupeKey); else pairs = valid;
+      const ops = buildOps(pairs, instanceId, recordType, direction);
+      const script = stringifyBulk(ops, ordered);
+
+      $("countPairs").textContent = pairs.length;
+      $("countOps").textContent = ops.length;
+      $("errors").textContent = errorList.length;
+      $("errBox").textContent = errorList.join('\n');
+      $("out").textContent = script;
+      return { script };
+    }
+
+    function copyOut(){
+      const text = $("out").textContent;
+      if(!text.trim()) return;
+      navigator.clipboard.writeText(text).then(()=>{
+        flash($("btnCopy"));
+      });
+    }
+
+    function downloadJs(){
+      const { script } = generate();
+      const blob = new Blob([script+'\n'], { type: 'text/javascript' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'bulkwrite_vendor_updates.js';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function flash(el){
+      const orig = el.textContent; el.textContent = '✔ Done';
+      setTimeout(()=> el.textContent = orig, 900);
+    }
+
+    $("btnGenerate").addEventListener('click', generate);
+    $("btnCopy").addEventListener('click', copyOut);
+    $("btnDownload").addEventListener('click', downloadJs);
+    $("btnClear").addEventListener('click', ()=>{ $("pairs").value=''; $("out").textContent=''; $("errBox").textContent=''; $("countPairs").textContent='0'; $("countOps").textContent='0'; $("errors").textContent='0'; });
+    
+    // Regenerate when update direction changes
+    document.querySelectorAll('input[name="updateDirection"]').forEach(radio => {
+      radio.addEventListener('change', generate);
+    });
+
+    // Prefill a small example to show structure
+    $("pairs").value = '5600872,BA00773\n31882205,V15757';
+    generate();
+  </script>
+</body>
+</html>
