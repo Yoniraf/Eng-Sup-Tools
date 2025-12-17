@@ -318,7 +318,7 @@
     }
 
     .log-tool-inner.wide {
-      max-width: 1200px;
+      max-width: none;
       margin: 0;
       width: 100%;
     }
@@ -401,6 +401,32 @@
       background: #0f172a;
     }
   
+
+    /* Shared textarea/output styling (used by bottom panels) */
+    .log-output {
+      width: 100%;
+      min-height: 140px;
+      border: 1px solid var(--app-border);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(2, 6, 23, 0.35);
+      color: var(--app-text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace;
+      resize: vertical;
+    }
+
+    .kv-status {
+      margin-top: 10px;
+      padding: 8px 10px;
+      border: 1px solid var(--app-border);
+      border-radius: 12px;
+      background: rgba(2, 6, 23, 0.35);
+      color: var(--app-muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
     /* --- Value Extractor --------------------------------------------------- */
     .kv-grid {
       display: grid;
@@ -415,7 +441,8 @@
       border-radius: 12px;
       padding: 10px;
       background: rgba(2, 6, 23, 0.35);
-      max-height: 260px;
+      max-height: 45vh;
+      min-height: 160px;
       overflow: auto;
     }
     .kv-keys label {
@@ -622,16 +649,10 @@
             <button id="extractor-refresh-keys" type="button">Refresh keys</button>
           </div>
 
-          <div class="kv-grid" style="margin-top:12px;">
-            <div>
-              <div style="color:var(--app-muted);font-size:0.9rem;margin:0 0 6px;">Keys</div>
-              <div id="extractor-keys" class="kv-keys"></div>
-            </div>
-
-            <div>
-              <div style="color:var(--app-muted);font-size:0.9rem;margin:0 0 6px;">Preview</div>
-              <output id="extractor-preview" class="kv-output"></output>
-            </div>
+          <div style="margin-top:12px;">
+            <div style="color:var(--app-muted);font-size:0.9rem;margin:0 0 6px;">Keys</div>
+            <div id="extractor-keys" class="kv-keys"></div>
+            <div id="extractor-status" class="kv-status" role="status">Paste a JSON array above to see keys.</div>
           </div>
 
           <div class="kv-actions">
@@ -1376,8 +1397,8 @@
         if (exIn) exIn.value = "";
         const exKeys = document.getElementById("extractor-keys");
         if (exKeys) exKeys.innerHTML = "";
-        const exPrev = document.getElementById("extractor-preview");
-        if (exPrev) exPrev.textContent = "";
+        const exStatus = document.getElementById("extractor-status");
+        if (exStatus) exStatus.textContent = "";
         const exOut = document.getElementById("extractor-json-output");
         if (exOut) exOut.value = "";
 
@@ -1724,7 +1745,7 @@
     // --- Nested JSON Key-Value Extractor (integrated) ----------------------
     const extractorInput = document.getElementById("extractor-input");
     const extractorKeys = document.getElementById("extractor-keys");
-    const extractorPreview = document.getElementById("extractor-preview");
+    const extractorStatus = document.getElementById("extractor-status");
     const extractorJsonOutput = document.getElementById("extractor-json-output");
 
     const btnExtractorUseLeft = document.getElementById("extractor-use-left");
@@ -1765,13 +1786,15 @@
     }
 
     function extractor_setError(msg) {
-      extractorPreview.textContent = msg;
-      extractorPreview.style.color = "#fca5a5";
+      if (!extractorStatus) return;
+      extractorStatus.textContent = msg;
+      extractorStatus.style.color = "#fca5a5";
     }
 
     function extractor_setOk(text) {
-      extractorPreview.textContent = text;
-      extractorPreview.style.color = "var(--app-text)";
+      if (!extractorStatus) return;
+      extractorStatus.textContent = text;
+      extractorStatus.style.color = "var(--app-muted)";
     }
 
     function extractor_refreshKeys() {
@@ -1831,32 +1854,29 @@
           return;
         }
 
-        // Preview (original behavior style)
-        let preview = "";
         const extracted = [];
 
-        jsonData.forEach((record, index) => {
-          preview += `Record ${index + 1}:\n`;
+        jsonData.forEach((record) => {
           const outObj = {};
-          selectedKeys.forEach(key => {
-            const value = extractor_getNestedValue(record, key.split('.'));
+          selectedKeys.forEach((key) => {
+            const value = extractor_getNestedValue(record, key.split("."));
             if (value !== undefined) {
-              preview += `${key}: ${JSON.stringify(value)}\n`;
               outObj[key] = value;
             }
           });
-          preview += "\n";
           extracted.push(outObj);
         });
 
-        extractor_setOk(preview.trimEnd());
         extractorJsonOutput.value = JSON.stringify(extracted, null, 2);
+        extractor_setOk(
+          `Extracted ${extracted.length} record(s) with ${selectedKeys.length} key(s).`
+        );
       } catch (error) {
         extractor_setError(`Error processing JSON: ${error.message}`);
       }
     }
 
-    function extractor_useEditor(sideKey) {
+        function extractor_useEditor(sideKey) {
       const tab = getActiveTab();
       const side = tab[sideKey];
       const json = contentToJSON(side.content);
