@@ -49,7 +49,7 @@
     {
       "id": "retrySepecificSyncEngine",
       "title": "Retry Specific SyncEngine",
-      "description": "Bulk retry for sync Engine",
+      "description": "Batch-call SyncEngine scheduleRetrySync for a list of IDs (with batching, retries, progress, and logs).",
       "path": "./tools/retrySepecificSyncEngine.html",
       "icon": "\ud83d\udd10",
       "tags": ["Retry Specific", "syncEngine"]
@@ -57,7 +57,7 @@
     {
       "id": "bulkRecordStateUpdateSyncEngine",
       "title": "Bulk Update Record State",
-      "description": "Bulk retry for sync Engine",
+      "description": "Generate a MongoDB bulkWrite script to update syncengineservice_recordsyncstates (tipaltiId ↔ externalId).",
       "path": "./tools/bulkRecordStateUpdateSyncEngine.html",
       "icon": "\ud83d\udd10",
       "tags": ["Bulk Update", "syncEngine"]
@@ -65,10 +65,10 @@
     {
       "id": "CaseWHenSQLQUey",
       "title": "SQL CASE WHEN Generator",
-      "description": "when you need your sql query to return in the exact same order of the items appearing in your IN query",
+      "description": "Append ORDER BY CASE to preserve the same order as values in an IN(...) list.",
       "path": "./tools/CaseWHenSQLQUey.html",
       "icon": "\ud83d\udd10",
-      "tags": ["Bulk Update", "syncEngine"]
+      "tags": ["SQL", "Ordering", "CASE"]
     },
     {
       "id": "api-key-generator",
@@ -85,7 +85,7 @@
     {
       "id": "CSV_Splitter",
       "title": "CSV_Splitter",
-      "description": "",
+      "description": "Split a CSV into multiple smaller CSV files (header included in every part).",
       "path": "./tools/CSV_Splitter.html",
       "icon": "\ud83d\udd10",
       "tags": ["CSV"]

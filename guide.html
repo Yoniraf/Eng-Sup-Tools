@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Team Toolbox — Tool Guide</title>
+  <link rel="stylesheet" href="./assets/app.css" />
+  <style>
+    :root{
+      --doc-surface: rgba(15,23,42,.55);
+      --doc-surface-2: rgba(2,6,23,.35);
+    }
+    body{ background: linear-gradient(180deg, rgba(96,165,250,.08), transparent 30%), var(--app-bg); }
+    .doc{
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px 16px 56px;
+    }
+    .doc-header{
+      display:flex;
+      gap:14px;
+      align-items:flex-start;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      padding: 14px;
+      border:1px solid var(--app-border);
+      border-radius: var(--radius);
+      background: var(--doc-surface);
+      box-shadow: var(--shadow);
+    }
+    .doc-header h1{
+      margin:0;
+      font-size: 18px;
+      letter-spacing: .2px;
+    }
+    .doc-header p{
+      margin:6px 0 0;
+      color: var(--app-muted);
+      font-size: 13px;
+      line-height: 1.45;
+      max-width: 880px;
+    }
+    .doc-header .actions{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .doc-header .actions a{
+      text-decoration:none;
+    }
+
+    .doc-layout{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 310px 1fr;
+      gap: 14px;
+      align-items:start;
+    }
+    @media (max-width: 980px){
+      .doc-layout{ grid-template-columns: 1fr; }
+    }
+
+    .toc{
+      position: sticky;
+      top: 14px;
+      border:1px solid var(--app-border);
+      border-radius: var(--radius);
+      background: var(--doc-surface);
+      box-shadow: var(--shadow);
+      padding: 12px;
+      max-height: calc(100vh - 28px);
+      overflow:auto;
+    }
+    .toc .title{
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--app-muted);
+      margin: 6px 6px 10px;
+    }
+    .toc a{
+      display:block;
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(148,163,184,.12);
+      background: rgba(2,6,23,.25);
+      text-decoration:none;
+      margin-bottom: 8px;
+    }
+    .toc a:hover{
+      border-color: rgba(96,165,250,.35);
+      background: rgba(2,6,23,.35);
+    }
+    .toc a .name{ font-weight: 700; font-size: 13px; }
+    .toc a .desc{ color: var(--app-muted); font-size: 12px; margin-top: 2px; line-height: 1.35; }
+
+    .content{
+      border:1px solid var(--app-border);
+      border-radius: var(--radius);
+      background: var(--doc-surface);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      min-width:0;
+    }
+
+    .tool{
+      border:1px solid rgba(148,163,184,.14);
+      background: rgba(2,6,23,.22);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin: 0 0 12px;
+    }
+    .tool h2{
+      margin:0 0 6px;
+      font-size: 16px;
+      letter-spacing: .2px;
+    }
+    .tool .meta{
+      color: var(--app-muted);
+      font-size: 12px;
+      line-height: 1.45;
+      margin: 0 0 10px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    @media (max-width: 980px){ .grid{ grid-template-columns: 1fr; } }
+    .panel{
+      border:1px solid rgba(148,163,184,.16);
+      border-radius: var(--radius);
+      background: var(--doc-surface-2);
+      padding: 12px;
+      min-width:0;
+    }
+    .panel h3{
+      margin: 0 0 8px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--app-muted);
+    }
+    .panel ul{ margin:0; padding-left: 18px; color: rgba(226,232,240,.9); font-size: 13px; line-height: 1.5; }
+    .panel li{ margin: 6px 0; }
+    .panel code{
+      font-family: var(--app-mono);
+      font-size: 12px;
+      background: rgba(0,0,0,.22);
+      border: 1px solid rgba(148,163,184,.16);
+      padding: 1px 6px;
+      border-radius: 999px;
+      color: rgba(226,232,240,.92);
+    }
+    .note{
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px dashed rgba(148,163,184,.22);
+      border-radius: var(--radius);
+      color: var(--app-muted);
+      font-size: 12px;
+      line-height: 1.5;
+      background: rgba(2,6,23,.20);
+    }
+    .divider{
+      height: 1px;
+      background: rgba(148,163,184,.14);
+      margin: 12px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="doc">
+    <div class="doc-header">
+      <div>
+        <h1>Team Toolbox — Tool Guide</h1>
+        <p>
+          This page explains what each tool does, when to use it, and what it outputs.
+          Everything runs fully in your browser (no server). Files you upload (CSV/log exports) are processed locally.
+        </p>
+      </div>
+      <div class="actions">
+        <a class="btn" href="./index.html" rel="noopener">↩ Back to Toolbox</a>
+        <a class="btn" href="./GUIDE.md" target="_blank" rel="noopener">Open as document (Markdown)</a>
+      </div>
+    </div>
+
+    <div class="doc-layout">
+      <nav class="toc" aria-label="Tool Guide table of contents">
+        <div class="title">Tools</div>
+        <a href="#json-studio">
+          <div class="name">JSON Studio</div>
+          <div class="desc">Side-by-side JSON editor + diff, CSV import/export, log reconstructor, key-value extractor.</div>
+        </a>
+        <a href="#line-breaks">
+          <div class="name">String Tools • Line Breaks</div>
+          <div class="desc">Convert lists between delimiters + format values for SQL <code>IN (...)</code>.</div>
+        </a>
+        <a href="#tsv-csv-json">
+          <div class="name">TSV/CSV → JSON Converter</div>
+          <div class="desc">Convert tab-delimited text into JSON (uses <code>\t</code> as the delimiter).</div>
+        </a>
+        <a href="#sql-template-generator">
+          <div class="name">SQL Template Generator</div>
+          <div class="desc">Generate one SQL statement per CSV row by replacing <code>{placeholders}</code>.</div>
+        </a>
+        <a href="#syncengine-batch-retry">
+          <div class="name">Retry Specific SyncEngine</div>
+          <div class="desc">Batch-call SyncEngine <code>scheduleRetrySync</code> with retries + progress logs.</div>
+        </a>
+        <a href="#mongodb-bulkwrite-generator">
+          <div class="name">Bulk Update Record State</div>
+          <div class="desc">Generate MongoDB <code>bulkWrite</code> <code>updateOne</code> operations for record sync states.</div>
+        </a>
+        <a href="#sql-case-when">
+          <div class="name">SQL CASE WHEN Generator</div>
+          <div class="desc">Append <code>ORDER BY CASE</code> to preserve the ordering of IDs in an <code>IN (...)</code> list.</div>
+        </a>
+        <a href="#api-key-hash">
+          <div class="name">API Key / Hash Generator</div>
+          <div class="desc">Compute an HMAC-SHA256 hash (Base64) from input fields + secret key.</div>
+        </a>
+        <a href="#csv-splitter">
+          <div class="name">CSV Splitter</div>
+          <div class="desc">Split a CSV into multiple parts; each output includes the header row.</div>
+        </a>
+      </nav>
+
+      <main class="content">
+        <section class="tool" id="json-studio">
+          <h2>JSON Studio</h2>
+          <p class="meta">
+            A multi-purpose JSON workspace: side-by-side editors, JSON diff, CSV import/export for arrays-of-objects,
+            Coralogix log reconstruction, and a nested key-value extractor.
+          </p>
+          <div class="grid">
+            <div class="panel">
+              <h3>How to use</h3>
+              <ul>
+                <li><strong>Choose a mode</strong>: each side supports <code>Tree</code>, <code>Text</code>, <code>Table</code>.</li>
+                <li><strong>Compare</strong>: click <code>Compare</code> to see a “parsed JSON diff” output.</li>
+                <li><strong>Beautify</strong>: click <code>Beautify both</code> to pretty-print JSON on both sides (only if parseable).</li>
+                <li><strong>Tabs</strong>: use <code>+</code> to add tabs; double-click a tab name to rename; close (×) when multiple exist.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Inputs & outputs</h3>
+              <ul>
+                <li><strong>Diff output</strong>: line-by-line path differences like <code>$.a.b: 1 ⇢ 2</code>.</li>
+                <li><strong>CSV import</strong>: imports a CSV file into an editor as JSON and switches that side to <code>Table</code> mode.</li>
+                <li><strong>CSV export</strong>: only works when the JSON is an <em>array of objects</em> (e.g. <code>[{...},{...}]</code>).</li>
+                <li><strong>Persistence</strong>: tabs and editor state are saved in browser <code>localStorage</code>.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="note">
+            <strong>Coralogix Log Reconstructor</strong>: upload a log export (JSON array, single JSON object, or NDJSON). The tool sorts by
+            <code>LogPart</code>, concatenates <code>message</code> parts (removing a leading <code>[n]</code> prefix), then tries to parse JSON (best-effort fixes for missing closing braces/brackets).
+            It downloads either <code>reconstructed_message.json</code> (valid JSON) or <code>reconstructed_message_raw.txt</code> (raw).
+            You can also inject the reconstructed output into the left/right editor.
+          </div>
+          <div class="note">
+            <strong>Nested JSON Key-Value Extractor</strong>: paste a JSON <em>array</em>, refresh keys, select dot-path keys (e.g. <code>a.b</code>),
+            then extract into a JSON array of objects. You can load from an editor or inject extracted JSON back into an editor.
+          </div>
+        </section>
+
+        <section class="tool" id="line-breaks">
+          <h2>String Tools • Line Breaks</h2>
+          <p class="meta">
+            Converts lists between line breaks / commas / spaces / custom delimiter, with optional trimming, de-duplication, wrapping,
+            and a SQL helper that builds an <code>IN (...)</code> clause (with proper single-quote escaping).
+          </p>
+          <div class="grid">
+            <div class="panel">
+              <h3>How to use</h3>
+              <ul>
+                <li><strong>Paste values</strong> (one per line, or comma/space separated).</li>
+                <li><strong>Select conversion</strong> (e.g. line breaks → comma).</li>
+                <li>Optional: <strong>Trim</strong>, <strong>Remove duplicates</strong>, <strong>Wrap each item</strong> with before/after strings.</li>
+                <li>Optional: enable <strong>SQL helper</strong> to output <code>IN ('a','b')</code> (auto-quotes and escapes single quotes).</li>
+                <li>Click <strong>Execute</strong>, then <strong>Copy to clipboard</strong>.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Notable behavior</h3>
+              <ul>
+                <li><strong>Item detection</strong>: if the input contains newlines, it splits by newline; else if it contains commas, it splits by comma; else splits by whitespace.</li>
+                <li><strong>Comma output formatting</strong>: can be “one per line” and can add a trailing comma.</li>
+                <li><strong>SQL quoting</strong>: values are wrapped with single quotes; internal <code>'</code> becomes <code>''</code>.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="tool" id="tsv-csv-json">
+          <h2>TSV/CSV → JSON Converter</h2>
+          <p class="meta">
+            Converts tab-delimited text (TSV) into a JSON array of objects. Despite the name, the delimiter is fixed to <code>\t</code>.
+          </p>
+          <div class="grid">
+            <div class="panel">
+              <h3>How to use</h3>
+              <ul>
+                <li>Paste data where the first line is headers (tab-separated).</li>
+                <li>Click <strong>Convert</strong> to generate JSON.</li>
+                <li>Click <strong>Copy</strong> to copy the JSON output.</li>
+                <li>Click <strong>Clear</strong> to reset input/output.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Output shape</h3>
+              <ul>
+                <li>Produces <code>[{header1:value1, header2:value2, ...}, ...]</code>.</li>
+                <li>Missing cells become empty strings (<code>""</code>).</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="tool" id="sql-template-generator">
+          <h2>SQL Template Generator</h2>
+          <p class="meta">
+            Generates one SQL statement per CSV row by replacing <code>{placeholder}</code> tokens with values from CSV headers.
+          </p>
+          <div class="grid">
+            <div class="panel">
+              <h3>How to use</h3>
+              <ul>
+                <li>Write/paste a SQL template containing placeholders like <code>{tipaltiid}</code> or <code>{externalid}</code>.</li>
+                <li>Upload a CSV file.</li>
+                <li>Click <strong>Generate Queries</strong>.</li>
+                <li>Click <strong>Copy to Clipboard</strong> to copy the generated output.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Important notes</h3>
+              <ul>
+                <li><strong>CSV parsing</strong> is simple: it splits by newline and then by comma (no quote-aware CSV parsing).</li>
+                <li><strong>Replacement</strong> is global per header: all occurrences of <code>{HeaderName}</code> are replaced.</li>
+                <li><strong>Types</strong>: replacement is plain text; you must include quotes in your template if needed.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="tool" id="syncengine-batch-retry">
+          <h2>Retry Specific SyncEngine (Batch Retry)</h2>
+          <p class="meta">
+            Calls SyncEngine’s <code>scheduleRetrySync</code> endpoint in batches, with retries, delays, a special “active sync job” wait path, and verbose logs.
+          </p>
+          <div class="grid">
+            <div class="panel">
+              <h3>What you need</h3>
+              <ul>
+                <li><strong>Environment</strong>: Production or Sandbox (selects endpoint URL).</li>
+                <li><strong>Authorization bearer token</strong>: used in the <code>Authorization: Bearer …</code> request header.</li>
+                <li><strong>recordType</strong>: e.g. <code>Vendor</code>.</li>
+                <li><strong>ID Type</strong>: <code>externalId</code> or <code>tipaltiId</code> (auto-sets direction).</li>
+                <li><strong>IDs</strong>: paste values, or upload CSV (the tool tries to find an ID-like column; else uses the first column).</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>How it behaves</h3>
+              <ul>
+                <li><strong>Batching</strong>: splits IDs into batches of “IDs per batch”.</li>
+                <li><strong>Retries</strong>: on failures, retries up to “Max Retries per Batch” with a delay.</li>
+                <li><strong>Special case</strong>: if response includes “instance has an active sync job”, it waits 1 minute (with an option to “Manual Retry (Skip Wait)”).</li>
+                <li><strong>Logs</strong>: prints the request payload per batch and response status into the Results panel.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="note">
+            <strong>Security note</strong>: bearer tokens are sensitive. Prefer short-lived tokens, avoid screen sharing, and clear the tool input when done.
+          </div>
+        </section>
+
+        <section class="tool" id="mongodb-bulkwrite-generator">
+          <h2>Bulk Update Record State (MongoDB bulkWrite Generator)</h2>
+          <p class="meta">
+            Generates a MongoDB script for <code>db.getCollection("syncengineservice_recordsyncstates").bulkWrite([...])</code>
+            containing <code>updateOne</code> operations that set a mapping field and also sets <code>hasBeenSynced: true</code>.
+          </p>
+          <div class="grid">
+            <div class="panel">
+              <h3>Inputs</h3>
+              <ul>
+                <li><strong>Instance ID</strong> and <strong>Record Type</strong> (used in every <code>filter</code>).</li>
+                <li><strong>Pairs</strong> (one per line): supports <code>tipaltiId,externalId</code>, space-separated pairs, JSON per line, or CSV with a header.</li>
+                <li><strong>Update direction</strong>:
+                  <ul>
+                    <li>Filter by <code>tipaltiId</code> → update <code>externalId</code>, or</li>
+                    <li>Filter by <code>externalId</code> → update <code>tipaltiId</code>.</li>
+                  </ul>
+                </li>
+                <li>Optional: de-duplicate by the filter field; optional “ordered: false” for bulkWrite.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Output</h3>
+              <ul>
+                <li>A ready-to-run MongoDB script with a <code>bulkWrite</code> call.</li>
+                <li>KPIs: number of pairs, ops, and validation errors.</li>
+                <li>Buttons to copy output or download as a <code>.js</code> file.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="note">
+            <strong>Important</strong>: This tool does not execute anything—it only generates a script. Review filters/updates before running in any environment.
+          </div>
+        </section>
+
+        <section class="tool" id="sql-case-when">
+          <h2>SQL CASE WHEN Generator</h2>
+          <p class="meta">
+            When you need results returned in the same order as items in an <code>IN (...)</code> list, this appends an <code>ORDER BY CASE</code> clause.
+          </p>
+          <div class="grid">
+            <div class="panel">
+              <h3>How to use</h3>
+              <ul>
+                <li>Paste a query containing <code>IN (...)</code>.</li>
+                <li>Click <strong>Generate CASE WHEN Query</strong>.</li>
+                <li>Copy the “Generated Query” output.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Important notes</h3>
+              <ul>
+                <li>It searches for the first <code>IN(...)</code> using a regex; it does not parse full SQL.</li>
+                <li>The generated clause is hard-coded to <code>ORDER BY CASE idAtPayer</code> (edit the column name if needed).</li>
+                <li>Duplicates are removed while keeping the first-seen order; unknown values fall back to <code>ELSE 999</code>.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="tool" id="api-key-hash">
+          <h2>API Key / Hash Generator</h2>
+          <p class="meta">
+            Generates an HMAC-SHA256 hash (Base64) from the concatenation <code>payerName + idap + timestamp + eat</code> using a secret <code>key</code>.
+          </p>
+          <div class="grid">
+            <div class="panel">
+              <h3>How to use</h3>
+              <ul>
+                <li>Fill <code>payerName</code>, <code>idap</code>, <code>timestamp</code> and <code>key</code> (eat is optional).</li>
+                <li>Click <strong>Generate</strong> near timestamp to fill current milliseconds.</li>
+                <li>Click <strong>Generate hash</strong> then <strong>Copy hash</strong>.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Output</h3>
+              <ul>
+                <li>Hash is Base64-encoded HMAC-SHA256.</li>
+                <li>Copy actions use your clipboard; a browser alert confirms copy.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="note">
+            <strong>Security note</strong>: treat <code>key</code> as secret. Clear fields after use.
+          </div>
+        </section>
+
+        <section class="tool" id="csv-splitter">
+          <h2>CSV Splitter</h2>
+          <p class="meta">
+            Splits a CSV into multiple smaller CSV files. Each output file includes the original header row plus a chunk of data rows.
+          </p>
+          <div class="grid">
+            <div class="panel">
+              <h3>How to use</h3>
+              <ul>
+                <li>Drag & drop a <code>.csv</code> file (or click the dropzone).</li>
+                <li>Set “Lines per file” (counts data rows; header is always included).</li>
+                <li>Click <strong>Split CSV</strong>.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>What happens</h3>
+              <ul>
+                <li>Your browser downloads multiple files named <code>original_part1.csv</code>, <code>original_part2.csv</code>, …</li>
+                <li>CSV parsing is line-based; empty lines are ignored.</li>
+                <li>All work is local in the browser.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <div class="divider"></div>
+        <div class="note">
+          <strong>Feedback / fixes</strong>: If a tool name, screenshot, or expected behavior changes, update both <code>guide.html</code> and <code>GUIDE.md</code> so end-users see consistent instructions.
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
+
+
