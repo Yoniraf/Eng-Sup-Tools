@@ -336,6 +336,36 @@
       background: #111827;
     }
 
+
+    .log-dropzone {
+      border: 1px dashed rgba(148, 163, 184, 0.45);
+      border-radius: 10px;
+      padding: 0.9rem 1rem;
+      background: rgba(15, 23, 42, 0.35);
+      cursor: pointer;
+    }
+
+    .log-dropzone:focus {
+      outline: 2px solid rgba(96, 165, 250, 0.7);
+      outline-offset: 2px;
+    }
+
+    .log-dropzone.is-dragover {
+      border-color: rgba(96, 165, 250, 0.9);
+      background: rgba(96, 165, 250, 0.08);
+    }
+
+    .log-dropzone-hint {
+      margin: 0.35rem 0 0.6rem;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+
+    .log-dropzone input[type="file"] {
+      margin-top: 0.25rem;
+      width: 100%;
+    }
+
     .log-tool-inner label {
       display: inline-block;
       margin-bottom: 0.5rem;
@@ -595,15 +625,24 @@
         <h1>JSON Log Reconstructor for Coralogix</h1>
 
         <div class="log-card">
-          <label for="fileInput">Upload your Coralogix log export (<code>.json</code>, <code>.log</code> or NDJSON):</label><br />
+          <div class="log-dropzone" id="log-dropzone" role="button" tabindex="0" aria-label="Drag and drop a file here, or click to choose">
+          <label for="fileInput">Upload your Coralogix log export (<code>.json</code>, <code>.log</code>, <code>.txt</code>/NDJSON, or a <code>.zip</code>):</label><br />
           <input
-            id="fileInput"
-            type="file"
-            accept=".json,.log,.txt"
-            onchange="processFile(event)"
+          id="fileInput"
+          type="file"
+          accept=".json,.log,.txt,.zip,application/zip"
+          onchange="processFile(event)"
           />
+          <div class="log-dropzone-hint">Drag &amp; drop a file here, or click to choose.</div>
+        </div>
+<div id="status" class="log-status">Waiting for file...</div>
 
-          <div id="status" class="log-status">Waiting for file...</div>
+          <div id="zip-picker" class="log-status" style="display:none;">
+            <span style="color:var(--app-muted);">ZIP contains multiple candidate files:</span>
+            <select id="zip-file-select" aria-label="Select file from zip"></select>
+            <button id="zip-file-load" type="button" class="icon-btn" title="Load selected file from ZIP">Load</button>
+          </div>
+
 
           <div id="log-inject" class="log-inject" style="display:none;">
             <span>Send reconstructed output directly into an editor:</span>
@@ -672,6 +711,7 @@
   <!-- Single module script combining both tools -->
   <script type="module">
     import { createJSONEditor } from "https://cdn.jsdelivr.net/npm/vanilla-jsoneditor@3.5.0/standalone.js";
+    import JSZip from "https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm";
 
     const STORAGE_KEY = "jsonSideToolTabs_v1";
 
@@ -1392,6 +1432,12 @@
         const logInject = document.getElementById("log-inject");
         if (logInject) logInject.style.display = "none";
 
+        // Reset ZIP picker UI
+        const zipPicker = document.getElementById("zip-picker");
+        if (zipPicker) zipPicker.style.display = "none";
+        const zipSel = document.getElementById("zip-file-select");
+        if (zipSel) zipSel.innerHTML = "";
+
         // Reset extractor UI
         const exIn = document.getElementById("extractor-input");
         if (exIn) exIn.value = "";
@@ -1643,83 +1689,80 @@
       injectRightBtn.addEventListener("click", () => injectIntoEditor("right"));
     }
 
-    function processFile(event) {
+    // --- ZIP support for log reconstructor --------------------------------
+    const zipPicker = document.getElementById("zip-picker");
+    const zipFileSelect = document.getElementById("zip-file-select");
+    const zipFileLoadBtn = document.getElementById("zip-file-load");
+
+    let pendingZipCandidates = []; // [{ path, entry }]
+
+    function hideZipPicker() {
+      if (zipPicker) zipPicker.style.display = "none";
+      if (zipFileSelect) zipFileSelect.innerHTML = "";
+      pendingZipCandidates = [];
+    }
+
+    function readFileAsText(file) {
+      return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = (e) => resolve(String(e.target.result || ""));
+        r.onerror = () => reject(new Error("Error reading the file. Please try again."));
+        r.readAsText(file);
+      });
+    }
+
+    function readFileAsArrayBuffer(file) {
+      return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = (e) => resolve(e.target.result);
+        r.onerror = () => reject(new Error("Error reading the file. Please try again."));
+        r.readAsArrayBuffer(file);
+      });
+    }
+
+    function processRawLogText(raw) {
       try {
-        const file = event.target.files && event.target.files[0];
-        if (!file) {
-          showStatus("No file selected.", true);
-          return;
+        const entries = parseLogContent(raw);
+
+        showStatus("Parsed " + entries.length + " log entries. Reconstructing JSON from log parts...");
+
+        const { combined, pretty, valid, error, stats } = reconstructJsonFromParts(entries);
+
+        // Always store raw and (if valid) JSON output for injection
+        lastReconstructedRaw = combined;
+        lastReconstructedJson = valid ? pretty : null;
+
+        if (logInjectContainer) {
+          // Allow injection of either JSON (if valid) or raw text (if invalid)
+          logInjectContainer.style.display = "flex";
         }
 
-        showStatus("Reading file " + file.name + "...");
+        const filename = valid ? "reconstructed_message.json" : "reconstructed_message_raw.txt";
+        downloadFile(filename, pretty);
 
-        const reader = new FileReader();
+        let msg =
+          "Done. Processed " +
+          stats.totalParts +
+          " log part(s); used " +
+          stats.usedParts +
+          ", empty/without message: " +
+          stats.emptyParts +
+          ".";
 
-        reader.onload = function (e) {
-          try {
-            const raw = e.target.result || "";
-            const entries = parseLogContent(raw);
-
-            showStatus("Parsed " + entries.length + " log entries. Reconstructing JSON from log parts...");
-
-            const { combined, pretty, valid, error, stats } = reconstructJsonFromParts(entries);
-
-            // Always store raw and (if valid) JSON output for injection
-            lastReconstructedRaw = combined;
-            lastReconstructedJson = valid ? pretty : null;
-
-            if (logInjectContainer) {
-              // Allow injection of either JSON (if valid) or raw text (if invalid)
-              logInjectContainer.style.display = "flex";
-            }
-
-            const filename = valid ? "reconstructed_message.json" : "reconstructed_message_raw.txt";
-            downloadFile(filename, pretty);
-
-            let msg =
-              "Done. Processed " +
-              stats.totalParts +
-              " log part(s); used " +
-              stats.usedParts +
-              ", empty/without message: " +
-              stats.emptyParts +
-              ".";
-
-            if (valid) {
-              msg += " Output is valid JSON in " + filename + ". You can also inject it into an editor using the buttons below.";
-              showStatus(msg, false);
-            } else {
-              msg +=
-                " However, the combined message is NOT valid JSON. Downloaded raw output as " +
-                filename +
-                " for inspection. You can still inject this raw output into an editor.";
-              console.warn("Combined JSON parse error:", error);
-              showStatus(msg, true);
-            }
-          } catch (innerErr) {
-            console.error("Error while processing file:", innerErr);
-            showStatus("Error while processing file: " + innerErr.message, true);
-            lastReconstructedRaw = null;
-            lastReconstructedJson = null;
-            if (logInjectContainer) {
-              logInjectContainer.style.display = "none";
-            }
-          }
-        };
-
-        reader.onerror = function () {
-          showStatus("Error reading the file. Please try again.", true);
-          lastReconstructedRaw = null;
-          lastReconstructedJson = null;
-          if (logInjectContainer) {
-            logInjectContainer.style.display = "none";
-          }
-        };
-
-        reader.readAsText(file);
-      } catch (err) {
-        console.error("Unexpected error in processFile:", err);
-        showStatus("Unexpected error while processing the file: " + err.message, true);
+        if (valid) {
+          msg += " Output is valid JSON in " + filename + ". You can also inject it into an editor using the buttons below.";
+          showStatus(msg, false);
+        } else {
+          msg +=
+            " However, the combined message is NOT valid JSON. Downloaded raw output as " +
+            filename +
+            " for inspection. You can still inject this raw output into an editor.";
+          console.warn("Combined JSON parse error:", error);
+          showStatus(msg, true);
+        }
+      } catch (innerErr) {
+        console.error("Error while processing file:", innerErr);
+        showStatus("Error while processing file: " + innerErr.message, true);
         lastReconstructedRaw = null;
         lastReconstructedJson = null;
         if (logInjectContainer) {
@@ -1728,7 +1771,178 @@
       }
     }
 
+    async function processZipFile(file) {
+      showStatus("Reading ZIP " + file.name + "...");
+
+      const buf = await readFileAsArrayBuffer(file);
+      const zip = await JSZip.loadAsync(buf);
+
+      const candidates = [];
+      zip.forEach((relativePath, entry) => {
+        if (entry.dir) return;
+        const p = String(relativePath);
+        const lower = p.toLowerCase();
+        if (
+          lower.endsWith(".json") ||
+          lower.endsWith(".log") ||
+          lower.endsWith(".txt") ||
+          lower.endsWith(".ndjson")
+        ) {
+          candidates.push({ path: p, entry });
+        }
+      });
+
+      if (candidates.length === 0) {
+        throw new Error("ZIP does not contain any .json/.log/.txt/.ndjson files.");
+      }
+
+      // Prefer shorter paths (often the main file) and stable ordering
+      candidates.sort((a, b) => a.path.length - b.path.length || a.path.localeCompare(b.path));
+
+      if (candidates.length === 1) {
+        hideZipPicker();
+        const raw = await candidates[0].entry.async("string");
+        showStatus("Extracted " + candidates[0].path + " from ZIP. Reconstructing...");
+        processRawLogText(raw);
+        return;
+      }
+
+      // Multiple candidates: show picker UI
+      pendingZipCandidates = candidates;
+
+      if (zipFileSelect) {
+        zipFileSelect.innerHTML = "";
+        candidates.forEach((c, i) => {
+          const opt = document.createElement("option");
+          opt.value = String(i);
+          opt.textContent = c.path;
+          zipFileSelect.appendChild(opt);
+        });
+      }
+
+      if (zipPicker) zipPicker.style.display = "block";
+      showStatus("ZIP contains multiple candidate files. Select one and click Load.", false);
+    }
+
+    async function loadSelectedZipEntry() {
+      if (!pendingZipCandidates || pendingZipCandidates.length === 0) return;
+
+      const idx = zipFileSelect ? parseInt(zipFileSelect.value, 10) : 0;
+      const chosen = pendingZipCandidates[Number.isFinite(idx) ? idx : 0];
+      if (!chosen) return;
+
+      try {
+        showStatus("Extracting " + chosen.path + " from ZIP...");
+        const raw = await chosen.entry.async("string");
+        showStatus("Extracted " + chosen.path + " from ZIP. Reconstructing...");
+        processRawLogText(raw);
+      } catch (e) {
+        console.error("Failed to extract from ZIP:", e);
+        showStatus(
+          "Failed to extract file from ZIP: " + (e && e.message ? e.message : String(e)),
+          true
+        );
+      }
+    }
+
+    if (zipFileLoadBtn) {
+      zipFileLoadBtn.addEventListener("click", loadSelectedZipEntry);
+    }
+
+        async function handleLogReconstructorFile(inputFile) {
+      try {
+        const file = inputFile;
+        if (!file) {
+          showStatus("No file selected.", true);
+          hideZipPicker();
+          return;
+        }
+
+        // Reset previous reconstruction state/UI
+        lastReconstructedRaw = null;
+        lastReconstructedJson = null;
+        if (logInjectContainer) logInjectContainer.style.display = "none";
+        hideZipPicker();
+
+        const nameLower = String(file.name || "").toLowerCase();
+        const isZip =
+          nameLower.endsWith(".zip") ||
+          file.type === "application/zip" ||
+          file.type === "application/x-zip-compressed";
+
+        if (isZip) {
+          await processZipFile(file);
+          return;
+        }
+
+        showStatus("Reading file " + file.name + "...");
+        const raw = await readFileAsText(file);
+        processRawLogText(raw);
+      } catch (err) {
+        console.error("Unexpected error in processFile:", err);
+        showStatus("Unexpected error while processing the file: " + err.message, true);
+        lastReconstructedRaw = null;
+        lastReconstructedJson = null;
+        hideZipPicker();
+        if (logInjectContainer) {
+          logInjectContainer.style.display = "none";
+        }
+      }
+    }
+
+    async function processFile(event) {
+      const file = event && event.target && event.target.files && event.target.files[0];
+      await handleLogReconstructorFile(file);
+    }
+
+    function setupLogReconstructorDnD() {
+      const dropzone = document.getElementById("log-dropzone");
+      const fileInput = document.getElementById("fileInput");
+      if (!dropzone || !fileInput) return;
+
+      const stop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      };
+
+      ["dragenter", "dragover"].forEach((evt) => {
+        dropzone.addEventListener(evt, (e) => {
+          stop(e);
+          dropzone.classList.add("is-dragover");
+        });
+      });
+
+      ["dragleave", "dragend", "drop"].forEach((evt) => {
+        dropzone.addEventListener(evt, (e) => {
+          stop(e);
+          dropzone.classList.remove("is-dragover");
+        });
+      });
+
+      dropzone.addEventListener("drop", async (e) => {
+        const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if (!f) return;
+        await handleLogReconstructorFile(f);
+      });
+
+      dropzone.addEventListener("click", (e) => {
+        // Let the native file input behave normally when clicked
+        if (e.target && e.target.closest && e.target.closest('input[type="file"]')) return;
+        fileInput.click();
+      });
+
+      dropzone.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          fileInput.click();
+        }
+      });
+    }
+
+    setupLogReconstructorDnD();
+
     // Expose processFile globally for the onchange handler
+
     window.processFile = processFile;
 
     // --- Initial setup -----------------------------------------------------
