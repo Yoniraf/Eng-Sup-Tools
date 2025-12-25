@@ -119,6 +119,15 @@ Everything runs in your browser (no server). Files you upload (CSV/log exports) 
 
 ---
 
+## SyncApp ERP API Runner (Desktop Download)
+
+**What it is**: A Windows/macOS desktop app that opens the same runner UI, but avoids browser CORS/CORP limitations (so SyncApp calls work reliably).
+
+**Where to get it**: Use the “SyncApp ERP API Runner (Desktop Download)” entry in the Toolbox sidebar, or download the latest release from:
+`https://github.com/yoniraf/Eng-Sup-Tools/releases/latest`
+
+---
+
 ## Update SRS Generator
 
 **What it is**: Generates a JSON array payload for a list of IDs (one per line):

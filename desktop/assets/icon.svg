@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1220"/>
+      <stop offset="1" stop-color="#111c33"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#60a5fa"/>
+      <stop offset="1" stop-color="#22c55e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- background -->
+  <rect x="0" y="0" width="1024" height="1024" rx="220" fill="url(#bg)"/>
+
+  <!-- subtle ring -->
+  <circle cx="512" cy="512" r="360" fill="none" stroke="rgba(148,163,184,0.18)" stroke-width="18"/>
+
+  <!-- rocket body -->
+  <g transform="translate(512 520)">
+    <path d="M0 -320 C120 -260 190 -130 190 10 C190 200 80 320 0 360 C-80 320 -190 200 -190 10 C-190 -130 -120 -260 0 -320Z"
+          fill="rgba(2,6,23,0.55)" stroke="rgba(148,163,184,0.24)" stroke-width="10"/>
+    <path d="M0 -290 C95 -238 150 -135 150 10 C150 170 70 272 0 310 C-70 272 -150 170 -150 10 C-150 -135 -95 -238 0 -290Z"
+          fill="url(#accent)" opacity="0.92"/>
+
+    <!-- window -->
+    <circle cx="0" cy="-40" r="56" fill="rgba(2,6,23,0.55)" stroke="rgba(229,231,235,0.55)" stroke-width="10"/>
+    <circle cx="0" cy="-40" r="30" fill="rgba(96,165,250,0.35)"/>
+
+    <!-- fins -->
+    <path d="M-150 120 L-290 220 L-150 260 Z" fill="rgba(96,165,250,0.55)"/>
+    <path d="M150 120 L290 220 L150 260 Z" fill="rgba(34,197,94,0.55)"/>
+
+    <!-- flame -->
+    <path d="M0 360 C70 410 70 520 0 590 C-70 520 -70 410 0 360Z" fill="rgba(250,204,21,0.95)"/>
+    <path d="M0 400 C45 440 45 510 0 555 C-45 510 -45 440 0 400Z" fill="rgba(248,113,113,0.9)"/>
+  </g>
+
+  <!-- label -->
+  <text x="512" y="860" text-anchor="middle"
+        font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial"
+        font-size="74" font-weight="700" fill="rgba(229,231,235,0.92)">
+    SyncApp Runner
+  </text>
+</svg>
+
+

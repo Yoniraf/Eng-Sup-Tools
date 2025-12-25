@@ -1,0 +1,50 @@
+{
+  "name": "syncapp-erp-api-runner-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Desktop wrapper for SyncApp ERP API Runner (auto-starts local proxy).",
+  "main": "main.js",
+  "author": "",
+  "license": "UNLICENSED",
+  "scripts": {
+    "sync": "node scripts/sync-app-assets.js",
+    "icons": "node scripts/generate-icons.js",
+    "dev": "npm run sync && npm run icons && electron .",
+    "dist": "npm run sync && npm run icons && electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3",
+    "electron-icon-builder": "^2.0.1",
+    "sharp": "^0.33.5"
+  },
+  "build": {
+    "appId": "com.engsup.syncapp-erp-api-runner",
+    "productName": "SyncApp ERP API Runner",
+    "directories": {
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "app/**/*"
+    ],
+    "asar": true,
+    "mac": {
+      "icon": "build/icon.icns",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        "nsis",
+        "zip"
+      ]
+    }
+  }
+}
+
+

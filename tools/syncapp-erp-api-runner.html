@@ -1,0 +1,1356 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SyncApp ERP API Runner</title>
+  <link rel="stylesheet" href="../assets/tool.css" />
+  <style>
+    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
+    .grid{display:grid; grid-template-columns: 1fr 1fr; gap: 12px}
+    @media (max-width: 980px){ .grid{grid-template-columns: 1fr} }
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      border:1px solid var(--app-border); border-radius:999px;
+      padding:6px 10px; background: rgba(2,6,23,.35);
+      font-size:12px; color: var(--app-muted);
+    }
+    .ok{color: rgba(34,197,94,.95)}
+    .warn{color: rgba(250,204,21,.95)}
+    .bad{color: rgba(248,113,113,.95)}
+    textarea.big{min-height: 220px}
+    textarea.mid{min-height: 160px}
+    button.copied{border-color: rgba(34,197,94,.65)}
+    details summary{cursor:pointer}
+    .kv{display:grid; grid-template-columns: 1fr 1fr; gap: 10px}
+    .kv3{display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px}
+    @media (max-width: 980px){ .kv,.kv3{grid-template-columns: 1fr} }
+    .small{font-size:12px}
+    .codebox{
+      border:1px solid var(--app-border);
+      border-radius: 12px;
+      background: rgba(2,6,23,.35);
+      padding: 10px 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .progress{
+      width:100%;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(148,163,184,.18);
+      overflow:hidden;
+      border: 1px solid var(--app-border);
+    }
+    .progress > div{
+      height: 100%;
+      width: 0%;
+      background: rgba(96,165,250,.85);
+      transition: width .2s ease;
+    }
+    .rowline{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    .rowline > *{flex: 1}
+    .rowline .tight{flex: 0 0 auto}
+    .hide{display:none !important}
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+      <div class="page-head">
+        <div>
+          <h1>SyncApp ERP API Runner</h1>
+          <div class="page-sub">
+            Run SyncApp ERP APIs (NetSuite / Intacct / QBO) with a bearer token — single-run or runner mode (CSV/paste).
+            <span class="muted">Token is not stored unless you explicitly opt in.</span>
+          </div>
+        </div>
+        <div class="page-actions">
+          <button id="btnClearAll" class="secondary" type="button">Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>1) Auth & Environment</h2>
+      <div class="muted">
+        Paste a bearer token (no client credentials). The tool will call <code>https://syncapp-{erp}.{env}.tipalti.com</code>.
+      </div>
+
+      <div class="grid" style="margin-top:10px">
+        <div>
+          <label for="environment">Environment</label>
+          <select id="environment">
+            <option value="sbox" selected>Sandbox (sbox)</option>
+            <option value="production">Production</option>
+          </select>
+        </div>
+        <div>
+          <label for="erp">ERP</label>
+          <select id="erp">
+            <option value="netsuite">NetSuite</option>
+            <option value="intacct">Intacct</option>
+            <option value="qbo">QBO</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label for="bearerToken">Bearer token</label>
+          <input id="bearerToken" type="password" placeholder="Paste token (not saved by default)" />
+          <div class="rowline small" style="margin-top:10px">
+            <label class="tight" style="display:flex; align-items:center; gap:8px; margin:0; color: var(--app-text)">
+              <input id="rememberToken" type="checkbox" />
+              Remember token (local only)
+            </label>
+            <button id="btnClearToken" type="button" class="secondary tight">Clear token</button>
+            <span id="tokenStatus" class="pill tight">Token: <strong class="warn">missing</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid" style="margin-top:10px">
+        <div>
+          <label for="delayMs">Delay between requests (ms)</label>
+          <input id="delayMs" type="number" min="0" step="50" value="1500" />
+          <div class="muted small">Tip: keep ≥ 1500ms if you see rate limits.</div>
+        </div>
+        <div>
+          <label for="timeoutMs">Request timeout (ms)</label>
+          <input id="timeoutMs" type="number" min="1000" step="500" value="30000" />
+        </div>
+      </div>
+
+      <hr />
+
+      <h3>Proxy (required for GitHub Pages)</h3>
+      <div class="muted">
+        Some SyncApp hosts respond with <code>Cross-Origin-Resource-Policy: same-origin</code>, so browser <code>fetch</code> fails with <code>TypeError: Failed to fetch</code>.
+        A proxy makes requests server-side and returns the response with permissive CORS.
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label class="tight" style="display:flex; align-items:center; gap:8px; margin:0; color: var(--app-text)">
+            <input id="useProxy" type="checkbox" />
+            Use local proxy
+          </label>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label for="proxyBaseUrl">Proxy base URL</label>
+          <input id="proxyBaseUrl" type="text" placeholder="http://localhost:8787" value="http://localhost:8787" />
+          <div class="muted small">
+            If you’re using a shared/team proxy, paste its base URL here.
+            You can also auto-configure this tool via query params: <code>?useProxy=1&amp;proxyBaseUrl=...</code>
+            <br/>If this page is served over <strong>HTTPS</strong> (GitHub Pages), the proxy must also be <strong>HTTPS</strong> (or the browser will block it as mixed content).
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2) Select API action</h2>
+      <div class="muted">
+        Choose an action from the registry and fill any placeholders. Runner mode can override these values per-iteration.
+      </div>
+
+      <div class="grid" style="margin-top:10px">
+        <div>
+          <label for="actionSearch">Search actions</label>
+          <input id="actionSearch" type="text" placeholder="Type to filter… (e.g. credentials, bills, vendors)" />
+        </div>
+        <div>
+          <label for="actionSelect">Action</label>
+          <select id="actionSelect"></select>
+        </div>
+      </div>
+
+      <div class="grid" style="margin-top:10px">
+        <div>
+          <label>Path template</label>
+          <div id="pathTemplate" class="codebox mono"></div>
+        </div>
+        <div>
+          <label>URL preview</label>
+          <div id="urlPreview" class="codebox mono"></div>
+        </div>
+      </div>
+
+      <div id="pathParamsCard" style="margin-top:10px">
+        <h3 style="margin-top:12px">Path parameters</h3>
+        <div id="pathParams" class="grid"></div>
+        <div class="muted small" style="margin-top:8px">
+          Runner mode can override these by providing columns named like the placeholders (e.g. <code>payerPublicId</code>, <code>id</code>, <code>recordType</code>).
+        </div>
+      </div>
+
+      <hr />
+
+      <h3>Query parameters (optional)</h3>
+      <div class="muted">
+        These will be appended as query params if present. Runner mode can override them per row.
+      </div>
+
+      <div class="kv3" style="margin-top:10px">
+        <div>
+          <label for="qpSearchId">searchId</label>
+          <input id="qpSearchId" type="text" placeholder="e.g. 12345" />
+        </div>
+        <div>
+          <label for="qpPageIndex">pageIndex</label>
+          <input id="qpPageIndex" type="number" step="1" placeholder="e.g. 0" />
+        </div>
+        <div>
+          <label for="qpPageSize">pageSize</label>
+          <input id="qpPageSize" type="number" step="1" placeholder="e.g. 200" />
+        </div>
+      </div>
+
+      <div class="kv" style="margin-top:10px">
+        <div>
+          <label for="qpFetchAll">fetchAll</label>
+          <select id="qpFetchAll">
+            <option value="" selected>(unset)</option>
+            <option value="true">true</option>
+            <option value="false">false</option>
+          </select>
+        </div>
+        <div>
+          <label for="qpWhere">where</label>
+          <input id="qpWhere" type="text" placeholder="e.g. status='ACTIVE' AND updatedAt&gt;='2025-01-01'" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>3) Runner (Postman-style)</h2>
+      <div class="muted">
+        Run the selected action multiple times by iterating variables from a CSV (columns = variables) or a pasted list (single variable).
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <label class="tight" style="display:flex; align-items:center; gap:8px; margin:0; color: var(--app-text)">
+          <input id="runnerEnabled" type="checkbox" />
+          Enable runner mode
+        </label>
+        <span class="pill tight">Iterations: <strong id="iterationCount">0</strong></span>
+        <span class="pill tight">Completed: <strong id="completedCount">0</strong></span>
+        <span class="pill tight">Failed: <strong id="failedCount">0</strong></span>
+      </div>
+
+      <div id="runnerSection" class="hide" style="margin-top:10px">
+        <div class="grid">
+          <div>
+            <label for="runnerMode">Runner input mode</label>
+            <select id="runnerMode">
+              <option value="singleVar" selected>Single variable list (paste or CSV column)</option>
+              <option value="csvRows">CSV rows (each row = variables)</option>
+            </select>
+            <div class="muted small" style="margin-top:8px">
+              Recommended: <strong>CSV rows</strong> if you want to override multiple variables per request.
+            </div>
+          </div>
+          <div id="singleVarConfig">
+            <label for="singleVarName">Variable to iterate</label>
+            <select id="singleVarName"></select>
+            <div class="muted small" style="margin-top:8px">
+              This can be any path placeholder (e.g. <code>id</code>) or a query param (<code>pageIndex</code>, <code>searchId</code>, ...).
+            </div>
+          </div>
+        </div>
+
+        <div class="grid" style="margin-top:10px">
+          <div>
+            <label for="runnerCsvFile">Upload CSV (optional)</label>
+            <input id="runnerCsvFile" type="file" accept=".csv,.tsv,.txt" />
+            <div id="csvHints" class="muted small" style="margin-top:8px"></div>
+          </div>
+          <div id="singleVarColumnWrap">
+            <label for="singleVarColumn">CSV column (for single-variable mode)</label>
+            <select id="singleVarColumn" disabled></select>
+          </div>
+        </div>
+
+        <label for="runnerText">Paste values (single-variable mode: one per line / comma / tab)</label>
+        <textarea id="runnerText" class="mono mid" placeholder="0&#10;1&#10;2&#10;3"></textarea>
+
+        <div class="actions">
+          <button id="btnPasteRunner" type="button" class="secondary">Paste from clipboard</button>
+          <button id="btnClearRunner" type="button" class="secondary">Clear runner input</button>
+          <button id="btnGenPageIndex" type="button">Generate pageIndex range…</button>
+        </div>
+
+        <details style="margin-top:10px">
+          <summary class="muted">Show runner CSV format examples</summary>
+          <div class="muted small" style="margin-top:10px">
+            <div><strong>CSV rows example</strong> (columns become variables):</div>
+            <div class="codebox mono" style="margin-top:8px">payerPublicId,recordType,id,pageIndex,pageSize,where
+12345,vendor,999,0,200,status='ACTIVE'
+12345,vendor,999,1,200,status='ACTIVE'</div>
+            <div style="margin-top:10px"><strong>Single variable example</strong> (iterate <code>pageIndex</code>):</div>
+            <div class="codebox mono" style="margin-top:8px">0
+1
+2
+3</div>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>4) Execute</h2>
+      <div class="muted">
+        Single-run executes one request. Runner mode executes multiple requests and aggregates all responses into one JSON.
+      </div>
+
+      <div class="actions">
+        <button id="btnRunOnce" type="button">Run once</button>
+        <button id="btnRunRunner" type="button">Run runner</button>
+        <button id="btnStop" type="button" class="secondary" disabled>Stop</button>
+        <button id="btnClearResults" type="button" class="secondary">Clear results</button>
+      </div>
+
+      <div id="progressWrap" class="hide" style="margin-top:12px">
+        <div class="rowline">
+          <div class="progress"><div id="progressBar"></div></div>
+          <div class="pill tight">Progress: <strong id="progressText">0 / 0</strong></div>
+          <div class="pill tight">Status: <strong id="statusText">Ready</strong></div>
+        </div>
+      </div>
+
+      <details style="margin-top:12px">
+        <summary class="muted">Logs</summary>
+        <div id="logs" class="codebox mono" style="margin-top:10px; min-height: 120px"></div>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>5) Aggregated response</h2>
+      <div class="muted">
+        The aggregated output is always valid JSON. Use “Copy aggregated JSON” to paste into tickets/tools.
+      </div>
+
+      <div class="actions">
+        <button id="btnCopyAgg" type="button">Copy aggregated JSON</button>
+        <button id="btnDownloadAgg" type="button" class="secondary">Download JSON</button>
+      </div>
+
+      <label for="aggOut">Aggregated JSON</label>
+      <textarea id="aggOut" class="mono big" placeholder="{ ... }"></textarea>
+    </div>
+
+    <footer class="muted" style="margin: 12px 0 0; text-align:center; font-size: 12px">
+      SyncApp ERP API Runner · v1.0
+    </footer>
+  </div>
+
+  <script>
+    // ---------------- Registry (ported from CLI script) ---------------------
+    const NETSUITE_CLOSED_RECORDS = [
+      "account", "accountingPeriod", "bill", "class", "currency", "customer",
+      "customList", "customRecordType", "department", "deposit", "employee",
+      "entityCustomField", "expenseCategory", "expenseReport", "file", "folder",
+      "item", "itemFulfillment", "itemReceipt", "location", "payment",
+      "paymentTerm", "project", "purchaseOrder", "salesOrder", "SalesTaxItem",
+      "state", "subsidiary", "tax-codes", "tax-rates", "transactionBodyCustomField",
+      "transactionColumnCustomField", "unit", "vendor", "vendorCredit",
+      "vendorSubsidiaryRelationship"
+    ];
+
+    // Order: NetSuite, Intacct, QBO
+    const MASTER_REGISTRY = {
+      netsuite: {
+        "1": { name: "RecordTypes", path: "/api/v1/resources/{recordType}/{id}?payerPublicId={payerPublicId}", method: "GET" },
+        "2": { name: "PayerCredentials", path: "/api/v1/credentials?payerPublicId={payerPublicId}", method: "GET" },
+        "3": { name: "Custom Record", path: "/api/v1/resources/{recordType}/{id}/custom-records?payerPublicId={payerPublicId}", method: "GET" },
+        "4": { name: "CustomizationId", path: "/api/v1/resources/customizationId/{recordType}?payerPublicId={payerPublicId}", method: "GET" }
+      },
+      intacct: {
+        "1": { name: "Accounts", path: "/api/intacct/payers/{payerPublicId}/recordTypes/accounts/{id}", method: "GET" },
+        "2": { name: "Audits", path: "/api/intacct/payers/{payerPublicId}/recordTypes/audits/{id}", method: "GET" },
+        "3": { name: "BankAccounts", path: "/api/intacct/payers/{payerPublicId}/recordTypes/bank-accounts/{id}", method: "GET" },
+        "4": { name: "Bills", path: "/api/intacct/payers/{payerPublicId}/recordTypes/bills/{id}", method: "GET" },
+        "5": { name: "BillsAdvanced", path: "/api/intacct/payers/{payerPublicId}/recordTypes/bills-advanced/{id}", method: "GET" },
+        "6": { name: "Classes", path: "/api/intacct/payers/{payerPublicId}/recordTypes/classes/{id}", method: "GET" },
+        "7": { name: "ClassesExtended", path: "/api/intacct/payers/{payerPublicId}/recordTypes/classes-extended/{id}", method: "GET" },
+        "8": { name: "Credentials", path: "/api/intacct/payers/{payerPublicId}/recordTypes/credentials", method: "GET" },
+        "9": { name: "CreditCards", path: "/api/intacct/payers/{payerPublicId}/recordTypes/credit-cards/{id}", method: "GET" },
+        "10": { name: "Customers", path: "/api/intacct/payers/{payerPublicId}/recordTypes/customers/{id}", method: "GET" },
+        "11": { name: "Definitions", path: "/api/intacct/payers/{payerPublicId}/recordTypes/definitions/{id}", method: "GET" },
+        "12": { name: "Departments", path: "/api/intacct/payers/{payerPublicId}/recordTypes/departments/{id}", method: "GET" },
+        "13": { name: "Deposits", path: "/api/intacct/payers/{payerPublicId}/recordTypes/deposits/{id}", method: "GET" },
+        "14": { name: "Dimensions", path: "/api/intacct/payers/{payerPublicId}/recordTypes/dimensions/{id}", method: "GET" },
+        "15": { name: "Employees", path: "/api/intacct/payers/{payerPublicId}/recordTypes/employees/{id}", method: "GET" },
+        "16": { name: "Files", path: "/api/intacct/payers/{payerPublicId}/recordTypes/files/{id}", method: "GET" },
+        "17": { name: "Folders", path: "/api/intacct/payers/{payerPublicId}/recordTypes/folders/{folderName}", method: "GET" },
+        "18": { name: "ItemReceipts", path: "/api/intacct/payers/{payerPublicId}/recordTypes/item-receipts/{id}", method: "GET" },
+        "19": { name: "Items", path: "/api/intacct/payers/{payerPublicId}/recordTypes/items/{id}", method: "GET" },
+        "20": { name: "LedgerDetails", path: "/api/intacct/payers/{payerPublicId}/recordTypes/ledger-details/{id}", method: "GET" },
+        "21": { name: "Locations", path: "/api/intacct/payers/{payerPublicId}/recordTypes/locations/{id}", method: "GET" },
+        "22": { name: "Lookup", path: "/api/intacct/payers/{payerPublicId}/recordTypes/lookup/{item}", method: "GET" },
+        "23": { name: "Payments", path: "/api/intacct/payers/{payerPublicId}/recordTypes/payments/{id}", method: "GET" },
+        "24": { name: "PaymentTerms", path: "/api/intacct/payers/{payerPublicId}/recordTypes/payment-terms/{id}", method: "GET" },
+        "25": { name: "Projects", path: "/api/intacct/payers/{payerPublicId}/recordTypes/projects/{id}", method: "GET" },
+        "26": { name: "ProjectsAdvanced", path: "/api/intacct/payers/{payerPublicId}/recordTypes/projects-advanced/{id}", method: "GET" },
+        "27": { name: "PurchaseOrders", path: "/api/intacct/payers/{payerPublicId}/recordTypes/purchase-orders/{id}", method: "GET" },
+        "28": { name: "PurchaseOrdersAdvanced", path: "/api/intacct/payers/{payerPublicId}/recordTypes/purchase-orders-advanced/{id}", method: "GET" },
+        "29": { name: "Subsidiaries", path: "/api/intacct/payers/{payerPublicId}/recordTypes/subsidiaries/{id}", method: "GET" },
+        "30": { name: "TaxCodes", path: "/api/intacct/payers/{payerPublicId}/recordTypes/tax-codes/{id}", method: "GET" },
+        "31": { name: "Units", path: "/api/intacct/payers/{payerPublicId}/recordTypes/units/{id}", method: "GET" },
+        "32": { name: "VendorCredits", path: "/api/intacct/payers/{payerPublicId}/recordTypes/vendor-credits/{id}", method: "GET" },
+        "33": { name: "VendorCreditsAdvanced", path: "/api/intacct/payers/{payerPublicId}/recordTypes/vendor-credits-advanced/{id}", method: "GET" },
+        "34": { name: "Vendors", path: "/api/intacct/payers/{payerPublicId}/recordTypes/vendors/{id}", method: "GET" },
+        "35": { name: "Warehouses", path: "/api/intacct/payers/{payerPublicId}/recordTypes/warehouses/{id}", method: "GET" }
+      },
+      qbo: {
+        "1": { name: "Accounts", path: "/api/qbo/payers/{payerPublicId}/accounts/{id}", method: "GET" },
+        "2": { name: "BillPayments", path: "/api/qbo/payers/{payerPublicId}/bill-payments/{id}", method: "GET" },
+        "3": { name: "Bills", path: "/api/qbo/payers/{payerPublicId}/bills/{id}", method: "GET" },
+        "4": { name: "Classes", path: "/api/qbo/payers/{payerPublicId}/classes/{id}", method: "GET" },
+        "5": { name: "CompanyInfos", path: "/api/qbo/payers/{payerPublicId}/company-infos/{id}", method: "GET" },
+        "6": { name: "Currencies", path: "/api/qbo/payers/{payerPublicId}/currencies/{id}", method: "GET" },
+        "7": { name: "Customers", path: "/api/qbo/payers/{payerPublicId}/customers/{id}", method: "GET" },
+        "8": { name: "Departments", path: "/api/qbo/payers/{payerPublicId}/departments/{id}", method: "GET" },
+        "9": { name: "Deposits", path: "/api/qbo/payers/{payerPublicId}/deposits/{id}", method: "GET" },
+        "10": { name: "ExchangeRates", path: "/api/qbo/payers/{payerPublicId}/exchange-rates/{id}", method: "GET" },
+        "11": { name: "MetaData", path: "/api/qbo/payers/{payerPublicId}/metadata/{objectName}", method: "GET" },
+        "12": { name: "PaymentsTerms", path: "/api/qbo/payers/{payerPublicId}/payment-terms/{id}", method: "GET" },
+        "13": { name: "Preferences", path: "/api/qbo/payers/{payerPublicId}/preferences/{id}", method: "GET" },
+        "14": { name: "TaxCodes", path: "/api/qbo/payers/{payerPublicId}/tax-codes/{id}", method: "GET" },
+        "15": { name: "TaxRates", path: "/api/qbo/payers/{payerPublicId}/tax-rates/{id}", method: "GET" },
+        "16": { name: "VendorCredits", path: "/api/qbo/payers/{payerPublicId}/vendor-credits/{id}", method: "GET" },
+        "17": { name: "Vendors", path: "/api/qbo/payers/{payerPublicId}/vendors/{id}", method: "GET" }
+      }
+    };
+
+    // ---------------- Helpers ----------------------------------------------
+    const STORAGE_KEY = 'syncapp_erp_api_runner_v1';
+    let savedActionKey = null;
+
+    const $ = (id) => document.getElementById(id);
+    function nowIso() { return new Date().toISOString(); }
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    function safeJsonStringify(obj) {
+      try { return JSON.stringify(obj, null, 2); }
+      catch (e) { return JSON.stringify({ error: 'Failed to stringify', message: String(e) }, null, 2); }
+    }
+
+    function addLog(line) {
+      const logs = $('logs');
+      const ts = new Date().toLocaleTimeString();
+      logs.textContent += `[${ts}] ${line}\n`;
+      logs.scrollTop = logs.scrollHeight;
+    }
+
+    function clearLogs() { $('logs').textContent = ''; }
+
+    function parseList(raw) {
+      if (!raw) return [];
+      const parts = String(raw).split(/[\n,;\t|\r]+/g);
+      const cleaned = parts.map(x => String(x).trim()).filter(Boolean);
+      return cleaned;
+    }
+
+    function detectDelimiter(line) {
+      const s = String(line || '');
+      const counts = [
+        { d: ',', c: (s.match(/,/g) || []).length },
+        { d: ';', c: (s.match(/;/g) || []).length },
+        { d: '\t', c: (s.match(/\t/g) || []).length },
+        { d: '|', c: (s.match(/\|/g) || []).length },
+      ].sort((a,b) => b.c - a.c);
+      return counts[0].c > 0 ? counts[0].d : ',';
+    }
+
+    // Basic CSV/TSV line parsing with quotes.
+    function parseDelimitedLine(line, delimiter) {
+      const out = [];
+      let cur = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          if (inQuotes && line[i + 1] === '"') { cur += '"'; i++; }
+          else inQuotes = !inQuotes;
+          continue;
+        }
+        if (!inQuotes && ch === delimiter) { out.push(cur); cur = ''; continue; }
+        cur += ch;
+      }
+      out.push(cur);
+      return out.map(x => x.trim());
+    }
+
+    function parseDelimitedTable(text) {
+      const lines = String(text || '')
+        .split(/\r?\n/)
+        .map(l => l.replace(/\r/g, ''))
+        .filter(l => l.trim().length > 0);
+      if (!lines.length) return { headers: [], rows: [] };
+      const delimiter = detectDelimiter(lines[0]);
+      const headers = parseDelimitedLine(lines[0], delimiter).map(h => h.replace(/^"|"$/g, '').trim());
+      const rows = [];
+      for (let i = 1; i < lines.length; i++) {
+        const values = parseDelimitedLine(lines[i], delimiter);
+        const obj = {};
+        for (let j = 0; j < headers.length; j++) obj[headers[j]] = values[j] ?? '';
+        rows.push(obj);
+      }
+      return { headers, rows, delimiter };
+    }
+
+    function normalizeKey(s) {
+      return String(s ?? '').trim().toLowerCase().replace(/\s+/g, '');
+    }
+
+    function collectQueryParamsFromUi() {
+      const qp = {};
+      const searchId = $('qpSearchId').value.trim();
+      const pageIndex = $('qpPageIndex').value.trim();
+      const pageSize = $('qpPageSize').value.trim();
+      const fetchAll = $('qpFetchAll').value.trim();
+      const where = $('qpWhere').value.trim();
+
+      if (searchId) qp.searchId = searchId;
+      if (pageIndex !== '') qp.pageIndex = pageIndex;
+      if (pageSize !== '') qp.pageSize = pageSize;
+      if (fetchAll) qp.fetchAll = fetchAll;
+      if (where) qp.where = where;
+      return qp;
+    }
+
+    function buildBaseHost(erp, env) {
+      return `https://syncapp-${erp}.${env}.tipalti.com`;
+    }
+
+    function getSelectedAction() {
+      const erp = $('erp').value;
+      const key = $('actionSelect').value;
+      const action = MASTER_REGISTRY[erp]?.[key];
+      if (!action) return null;
+      return { erp, key, ...action };
+    }
+
+    function extractPlaceholders(path) {
+      const re = /\{(.*?)\}/g;
+      const out = [];
+      let m;
+      while ((m = re.exec(path)) !== null) out.push(m[1]);
+      return [...new Set(out)];
+    }
+
+    function getPathParamValue(name) {
+      const el = document.querySelector(`[data-param="${CSS.escape(name)}"]`);
+      return el ? String(el.value ?? '').trim() : '';
+    }
+
+    function resolvePathTemplate(action, vars) {
+      let path = action.path;
+      const placeholders = extractPlaceholders(path);
+      for (const p of placeholders) {
+        const v = vars[p];
+        if (v === undefined || v === null) continue;
+        path = path.replaceAll(`{${p}}`, String(v));
+      }
+
+      // Special behavior: {id} blank means "ALL" (remove /{id})
+      // If any placeholder is still unresolved, we leave it as-is (preview will show it).
+      return path;
+    }
+
+    function applyIdBlankRemoval(rawPathTemplate, resolvedPath, vars) {
+      // Only apply if the *template* had {id} and the provided value is blank.
+      if (!rawPathTemplate.includes('{id}')) return resolvedPath;
+      const idVal = vars.id;
+      if (typeof idVal === 'string' && idVal.trim() === '') {
+        return resolvedPath
+          .replace('/{id}', '') // if still unresolved
+          .replaceAll('/' + encodeURIComponent('{id}'), '')
+          .replaceAll('/{id}', '')
+          .replaceAll('{id}', '')
+          // if we ended up with "/?x=y" (because id was blank), normalize to "?x=y"
+          .replace('/?', '?');
+      }
+      return resolvedPath;
+    }
+
+    function buildFinalUrl({ action, env, baseVars, runnerVars }) {
+      const erp = action.erp;
+      const host = buildBaseHost(erp, env);
+
+      // Variables precedence: runnerVars > baseVars
+      const vars = { ...baseVars, ...(runnerVars || {}) };
+
+      // QBO specific formatting for {id}: append |0 if id present and non-empty
+      if (erp === 'qbo' && typeof vars.id === 'string' && vars.id.trim()) {
+        if (!vars.id.includes('|')) vars.id = `${vars.id}|0`;
+      }
+
+      let resolved = resolvePathTemplate(action, vars);
+      resolved = applyIdBlankRemoval(action.path, resolved, vars);
+
+      // Query params: merge UI + runner overrides (runner wins)
+      const qpUi = collectQueryParamsFromUi();
+      const qpRunner = {};
+
+      // Allow runner to set: searchId, pageIndex, fetchAll, pageSize, where
+      for (const k of ['searchId', 'pageIndex', 'fetchAll', 'pageSize', 'where']) {
+        const rv = vars[k];
+        if (rv !== undefined && rv !== null && String(rv).trim() !== '') qpRunner[k] = String(rv).trim();
+      }
+
+      const qp = { ...qpUi, ...qpRunner };
+
+      // If path already includes ?, we should append with &
+      const u = new URL(host + resolved);
+      for (const [k, v] of Object.entries(qp)) {
+        u.searchParams.set(k, v);
+      }
+      return u.toString();
+    }
+
+    function getBaseVarsFromUi(action) {
+      const vars = {};
+      const placeholders = extractPlaceholders(action.path);
+      for (const p of placeholders) vars[p] = getPathParamValue(p);
+      return vars;
+    }
+
+    function setTokenStatus() {
+      const tok = $('bearerToken').value.trim();
+      const el = $('tokenStatus');
+      if (!tok) {
+        el.innerHTML = 'Token: <strong class="warn">missing</strong>';
+      } else {
+        el.innerHTML = 'Token: <strong class="ok">set</strong>';
+      }
+    }
+
+    function saveState() {
+      const remember = $('rememberToken').checked;
+      const s = {
+        environment: $('environment').value,
+        erp: $('erp').value,
+        action: $('actionSelect').value,
+        delayMs: $('delayMs').value,
+        timeoutMs: $('timeoutMs').value,
+        useProxy: $('useProxy').checked,
+        proxyBaseUrl: $('proxyBaseUrl').value,
+        qpSearchId: $('qpSearchId').value,
+        qpPageIndex: $('qpPageIndex').value,
+        qpPageSize: $('qpPageSize').value,
+        qpFetchAll: $('qpFetchAll').value,
+        qpWhere: $('qpWhere').value,
+        runnerEnabled: $('runnerEnabled').checked,
+        runnerMode: $('runnerMode').value,
+        singleVarName: $('singleVarName').value,
+        runnerText: $('runnerText').value,
+        rememberToken: remember,
+      };
+      if (remember) s.bearerToken = $('bearerToken').value;
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const s = JSON.parse(raw);
+        if (s.environment) $('environment').value = s.environment;
+        if (s.erp) $('erp').value = s.erp;
+        if (s.action) savedActionKey = s.action;
+        if (s.delayMs !== undefined) $('delayMs').value = s.delayMs;
+        if (s.timeoutMs !== undefined) $('timeoutMs').value = s.timeoutMs;
+        if (typeof s.useProxy === 'boolean') $('useProxy').checked = s.useProxy;
+        if (typeof s.proxyBaseUrl === 'string' && s.proxyBaseUrl.trim()) $('proxyBaseUrl').value = s.proxyBaseUrl;
+        if (s.qpSearchId !== undefined) $('qpSearchId').value = s.qpSearchId;
+        if (s.qpPageIndex !== undefined) $('qpPageIndex').value = s.qpPageIndex;
+        if (s.qpPageSize !== undefined) $('qpPageSize').value = s.qpPageSize;
+        if (s.qpFetchAll !== undefined) $('qpFetchAll').value = s.qpFetchAll;
+        if (s.qpWhere !== undefined) $('qpWhere').value = s.qpWhere;
+        if (typeof s.runnerEnabled === 'boolean') $('runnerEnabled').checked = s.runnerEnabled;
+        if (s.runnerMode) $('runnerMode').value = s.runnerMode;
+        if (s.singleVarName) $('singleVarName').value = s.singleVarName;
+        if (s.runnerText !== undefined) $('runnerText').value = s.runnerText;
+        if (typeof s.rememberToken === 'boolean') $('rememberToken').checked = s.rememberToken;
+        if (s.rememberToken && s.bearerToken) $('bearerToken').value = s.bearerToken;
+      } catch {}
+    }
+
+    function applyUrlConfig() {
+      const u = new URL(location.href);
+      const sp = u.searchParams;
+      const useProxyParam = sp.get('useProxy');
+      const proxyBaseUrlParam = sp.get('proxyBaseUrl') || sp.get('proxy');
+      if (proxyBaseUrlParam) {
+        $('proxyBaseUrl').value = proxyBaseUrlParam;
+      }
+      if (useProxyParam === '1' || useProxyParam === 'true') {
+        $('useProxy').checked = true;
+      }
+      // If a proxy URL is provided, default to enabled (best UX for shared deployment).
+      if (proxyBaseUrlParam && useProxyParam === null) {
+        $('useProxy').checked = true;
+      }
+    }
+
+    function warnIfMixedContentProxy() {
+      try {
+        if (location.protocol !== 'https:') return;
+        const base = String($('proxyBaseUrl').value || '').trim();
+        if (!base) return;
+        if (base.startsWith('http://')) {
+          addLog('Warning: page is HTTPS but proxy is HTTP — browsers will block this (mixed content). Use an HTTPS proxy URL.');
+        }
+      } catch {}
+    }
+
+    // ---------------- UI: Registry rendering -------------------------------
+    function renderActionOptions() {
+      const erp = $('erp').value;
+      const reg = MASTER_REGISTRY[erp] || {};
+      const q = $('actionSearch').value.trim().toLowerCase();
+      const keys = Object.keys(reg).sort((a,b) => Number(a) - Number(b));
+
+      const sel = $('actionSelect');
+      const prev = sel.value;
+      sel.innerHTML = '';
+      for (const k of keys) {
+        const item = reg[k];
+        const hay = `${k} ${item.name} ${item.path}`.toLowerCase();
+        if (q && !hay.includes(q)) continue;
+        const opt = document.createElement('option');
+        opt.value = k;
+        opt.textContent = `[${k}] ${item.name}`;
+        sel.appendChild(opt);
+      }
+      // restore selection if possible
+      if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
+      else if (sel.options.length) sel.value = sel.options[0].value;
+    }
+
+    function renderPathParams() {
+      const action = getSelectedAction();
+      if (!action) return;
+
+      $('pathTemplate').textContent = action.path;
+
+      const placeholders = extractPlaceholders(action.path);
+      const wrap = $('pathParams');
+      wrap.innerHTML = '';
+
+      if (!placeholders.length) {
+        $('pathParamsCard').classList.add('hide');
+      } else {
+        $('pathParamsCard').classList.remove('hide');
+      }
+
+      for (const p of placeholders) {
+        const div = document.createElement('div');
+
+        const label = document.createElement('label');
+        label.textContent = p;
+        label.setAttribute('for', `param_${p}`);
+        div.appendChild(label);
+
+        // Special: recordType for NetSuite action 1 -> dropdown + datalist-like behavior
+        if (p === 'recordType' && action.erp === 'netsuite' && action.key === '1') {
+          const select = document.createElement('select');
+          select.id = `param_${p}`;
+          select.dataset.param = p;
+          // first option empty to force selection if desired
+          const empty = document.createElement('option');
+          empty.value = '';
+          empty.textContent = '(select recordType)';
+          select.appendChild(empty);
+          for (const r of NETSUITE_CLOSED_RECORDS) {
+            const opt = document.createElement('option');
+            opt.value = r;
+            opt.textContent = r;
+            select.appendChild(opt);
+          }
+          select.addEventListener('change', () => { updateUrlPreview(); saveState(); });
+          div.appendChild(select);
+          const hint = document.createElement('div');
+          hint.className = 'muted small';
+          hint.style.marginTop = '6px';
+          hint.textContent = 'NetSuite standard record types list (from the CLI script).';
+          div.appendChild(hint);
+        } else {
+          const input = document.createElement('input');
+          input.id = `param_${p}`;
+          input.dataset.param = p;
+          input.type = (p.toLowerCase() === 'id') ? 'text' : 'text';
+          input.placeholder = p.toLowerCase() === 'id' ? 'Leave blank for ALL (if supported)' : `Enter ${p}`;
+          input.addEventListener('input', () => { updateUrlPreview(); saveState(); });
+          div.appendChild(input);
+        }
+
+        wrap.appendChild(div);
+      }
+
+      // Refresh single-variable dropdown candidates
+      renderSingleVarCandidates();
+      updateUrlPreview();
+    }
+
+    function renderSingleVarCandidates() {
+      const action = getSelectedAction();
+      const set = new Set();
+      if (action) extractPlaceholders(action.path).forEach(p => set.add(p));
+      ['searchId','pageIndex','pageSize','fetchAll','where'].forEach(p => set.add(p));
+
+      const sel = $('singleVarName');
+      const prev = sel.value;
+      sel.innerHTML = '';
+      [...set].sort().forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        sel.appendChild(opt);
+      });
+      if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
+    }
+
+    function updateUrlPreview() {
+      const action = getSelectedAction();
+      if (!action) return;
+      const env = $('environment').value;
+      const baseVars = getBaseVarsFromUi(action);
+      const url = buildFinalUrl({ action, env, baseVars, runnerVars: null });
+      $('urlPreview').textContent = url;
+      saveState();
+    }
+
+    // ---------------- Runner parsing --------------------------------------
+    let runnerTable = { headers: [], rows: [] }; // from CSV upload
+
+    function renderCsvColumns() {
+      const sel = $('singleVarColumn');
+      sel.innerHTML = '';
+      if (!runnerTable.headers.length) {
+        sel.disabled = true;
+        $('csvHints').textContent = '';
+        return;
+      }
+      runnerTable.headers.forEach(h => {
+        const opt = document.createElement('option');
+        opt.value = h;
+        opt.textContent = h;
+        sel.appendChild(opt);
+      });
+      sel.disabled = false;
+
+      // Heuristic: try to preselect the chosen variable name
+      const varName = $('singleVarName').value;
+      const byNorm = new Map(runnerTable.headers.map(h => [normalizeKey(h), h]));
+      const found = byNorm.get(normalizeKey(varName));
+      if (found) sel.value = found;
+      $('csvHints').textContent = `Loaded CSV with ${runnerTable.rows.length} rows, delimiter "${runnerTable.delimiter || ','}".`;
+    }
+
+    function getIterations() {
+      const enabled = $('runnerEnabled').checked;
+      if (!enabled) return [{ __index: 0, vars: {} }]; // single-run fallback
+
+      const mode = $('runnerMode').value;
+      if (mode === 'csvRows') {
+        if (!runnerTable.rows.length) return [];
+        return runnerTable.rows.map((r, i) => {
+          // normalize keys so "page index" also works
+          const vars = {};
+          for (const [k, v] of Object.entries(r)) vars[k] = v;
+          return { __index: i, vars };
+        });
+      }
+
+      // single variable mode
+      const varName = $('singleVarName').value;
+      let values = [];
+
+      // If CSV loaded, pull from selected column
+      if (runnerTable.rows.length && !$('runnerText').value.trim()) {
+        const col = $('singleVarColumn').value;
+        if (col) values = runnerTable.rows.map(r => String(r[col] ?? '').trim()).filter(Boolean);
+      } else {
+        values = parseList($('runnerText').value);
+      }
+
+      return values.map((v, i) => ({ __index: i, vars: { [varName]: v } }));
+    }
+
+    function updateRunnerCounts() {
+      const iters = getIterations();
+      $('iterationCount').textContent = String(iters.length || 0);
+    }
+
+    function toggleRunnerUi() {
+      const enabled = $('runnerEnabled').checked;
+      $('runnerSection').classList.toggle('hide', !enabled);
+      updateRunnerCounts();
+      saveState();
+    }
+
+    function toggleSingleVarUi() {
+      const mode = $('runnerMode').value;
+      const isSingle = mode === 'singleVar';
+      $('singleVarConfig').classList.toggle('hide', !isSingle);
+      $('singleVarColumnWrap').classList.toggle('hide', !isSingle);
+      updateRunnerCounts();
+      saveState();
+    }
+
+    // ---------------- Execution -------------------------------------------
+    let stopRequested = false;
+    let isRunning = false;
+    let aggregated = null;
+
+    function setButtonsRunning(running) {
+      isRunning = running;
+      $('btnRunOnce').disabled = running;
+      $('btnRunRunner').disabled = running;
+      $('btnStop').disabled = !running;
+    }
+
+    function setProgress(total, done, status) {
+      if (total <= 1) {
+        $('progressWrap').classList.add('hide');
+      } else {
+        $('progressWrap').classList.remove('hide');
+      }
+      $('progressText').textContent = `${done} / ${total}`;
+      $('statusText').textContent = status || 'Running';
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      $('progressBar').style.width = `${pct}%`;
+    }
+
+    function resetStats() {
+      $('completedCount').textContent = '0';
+      $('failedCount').textContent = '0';
+      setProgress(0, 0, 'Ready');
+    }
+
+    function normVarsMap(obj) {
+      // Build a lookup for runner vars, so headers with spaces/case still match our expected keys.
+      const m = new Map();
+      for (const [k, v] of Object.entries(obj || {})) m.set(normalizeKey(k), v);
+      return m;
+    }
+
+    function buildRunnerVars(action, iterationVarsRaw) {
+      const map = normVarsMap(iterationVarsRaw || {});
+      const out = {};
+
+      // Path placeholders
+      extractPlaceholders(action.path).forEach((p) => {
+        const v = map.get(normalizeKey(p));
+        if (v !== undefined) out[p] = String(v).trim();
+      });
+
+      // Query params (requested)
+      ['searchId','pageIndex','pageSize','fetchAll','where'].forEach((k) => {
+        const v = map.get(normalizeKey(k));
+        if (v !== undefined) out[k] = String(v).trim();
+      });
+
+      return out;
+    }
+
+    async function fetchWithTimeout(url, opts, timeoutMs) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await fetch(url, { ...opts, signal: controller.signal });
+        return res;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    function getProxyUrl() {
+      const base = String($('proxyBaseUrl').value || '').trim().replace(/\/+$/, '');
+      return base ? (base + '/proxy') : '';
+    }
+
+    async function callViaProxy({ url, method, headers, timeoutMs }) {
+      const proxyUrl = getProxyUrl();
+      if (!proxyUrl) throw new Error('Proxy is enabled but proxy base URL is empty.');
+      const res = await fetchWithTimeout(proxyUrl, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url, method, headers, timeoutMs }),
+      }, timeoutMs);
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(`Proxy error (${res.status}): ${t.slice(0, 400)}`);
+      }
+      return await res.json();
+    }
+
+    async function runRequests({ runnerMode }) {
+      const action = getSelectedAction();
+      if (!action) { alert('Missing action selection'); return; }
+
+      const token = $('bearerToken').value.trim();
+      if (!token) { alert('Missing bearer token'); return; }
+
+      const env = $('environment').value;
+      const delayMs = Math.max(0, Number($('delayMs').value || 0));
+      const timeoutMs = Math.max(1000, Number($('timeoutMs').value || 30000));
+      const useProxy = $('useProxy').checked;
+
+      const baseVars = getBaseVarsFromUi(action);
+
+      const iterations = (runnerMode === 'runner') ? getIterations() : [{ __index: 0, vars: {} }];
+      if (runnerMode === 'runner' && !iterations.length) {
+        alert('Runner mode is enabled but no iterations were found. Paste values or upload a CSV.');
+        return;
+      }
+
+      stopRequested = false;
+      setButtonsRunning(true);
+      clearLogs();
+      resetStats();
+
+      aggregated = {
+        meta: {
+          startedAt: nowIso(),
+          environment: env,
+          erp: action.erp,
+          actionKey: action.key,
+          actionName: action.name,
+          method: action.method,
+          pathTemplate: action.path,
+          delayMs,
+          timeoutMs,
+          runner: {
+            enabled: runnerMode === 'runner' && $('runnerEnabled').checked,
+            mode: $('runnerEnabled').checked ? $('runnerMode').value : 'off',
+            iterationCount: iterations.length,
+          }
+        },
+        results: []
+      };
+
+      $('aggOut').value = safeJsonStringify(aggregated);
+      let completed = 0;
+      let failed = 0;
+
+      addLog(`Starting ${iterations.length} request(s)…`);
+      const total = iterations.length;
+      setProgress(total, 0, 'Running');
+
+      for (let i = 0; i < iterations.length; i++) {
+        if (stopRequested) {
+          addLog('Stop requested — ending after current iteration.');
+          break;
+        }
+
+        const iter = iterations[i];
+        const runnerVars = buildRunnerVars(action, iter.vars);
+        const url = buildFinalUrl({ action, env, baseVars, runnerVars });
+        if (url.includes('{') || url.includes('}')) {
+          stopRequested = true;
+          addLog(`  ↳ BLOCKED: missing placeholder values. URL still contains "{...}".`);
+          alert('Missing required path parameters (URL still contains "{...}"). Fill placeholders or provide them via runner CSV columns.');
+          break;
+        }
+
+        const startedAt = performance.now();
+        addLog(`(${i + 1}/${total}) ${action.method} ${url}`);
+
+        let res = null;
+        let bodyJson = null;
+        let bodyText = null;
+        let ok = false;
+        let status = 0;
+        let error = null;
+
+        try {
+          // NOTE: Registry stores method, but initial CLI used GET everywhere. We honor registry method.
+          const method = (action.method || 'GET').toUpperCase();
+          const reqHeaders = {
+            'accept': 'application/json',
+            'authorization': `Bearer ${token}`,
+          };
+
+          if (useProxy) {
+            const proxyResp = await callViaProxy({ url, method, headers: reqHeaders, timeoutMs });
+            status = Number(proxyResp.status || 0);
+            ok = Boolean(proxyResp.ok);
+            const ct = String((proxyResp.headers && (proxyResp.headers['content-type'] || proxyResp.headers['Content-Type'])) || '');
+            bodyText = String(proxyResp.bodyText ?? '');
+            if (ct.includes('application/json')) {
+              try { bodyJson = JSON.parse(bodyText || ''); bodyText = null; } catch {}
+            } else {
+              try { bodyJson = JSON.parse(bodyText || ''); bodyText = null; } catch {}
+            }
+          } else {
+            res = await fetchWithTimeout(url, { method, headers: reqHeaders }, timeoutMs);
+            status = res.status;
+            ok = res.ok;
+
+            const ct = res.headers.get('content-type') || '';
+            if (ct.includes('application/json')) {
+              try { bodyJson = await res.json(); }
+              catch (e) { bodyText = await res.text(); }
+            } else {
+              bodyText = await res.text();
+              // Try parse JSON anyway
+              try { bodyJson = JSON.parse(bodyText); bodyText = null; } catch {}
+            }
+          }
+        } catch (e) {
+          error = String(e && e.name === 'AbortError' ? `Timeout after ${timeoutMs}ms` : e);
+          if (!useProxy && String(error).includes('Failed to fetch')) {
+            addLog('  ↳ Likely browser CORS/CORP or VPN/DNS. Enable "Use local proxy" and run the proxy script.');
+          }
+        }
+
+        const elapsedMs = Math.round(performance.now() - startedAt);
+
+        if (error || !ok) {
+          failed++;
+          $('failedCount').textContent = String(failed);
+          addLog(`  ↳ FAILED (${status || 'no status'}) in ${elapsedMs}ms ${error ? `— ${error}` : ''}`);
+        } else {
+          completed++;
+          $('completedCount').textContent = String(completed);
+          addLog(`  ↳ OK (${status}) in ${elapsedMs}ms`);
+        }
+
+        aggregated.results.push({
+          iteration: i,
+          input: {
+            runnerVarsRaw: iter.vars,
+            resolvedVars: runnerVars,
+          },
+          request: { method: (action.method || 'GET').toUpperCase(), url },
+          response: {
+            ok,
+            status,
+            elapsedMs,
+            contentType: res ? (res.headers.get('content-type') || '') : '',
+            error,
+          },
+          body: bodyJson !== null ? bodyJson : undefined,
+          rawText: bodyJson === null ? (bodyText ?? null) : null,
+        });
+
+        // Update aggregated output progressively (so you can copy even mid-run)
+        $('aggOut').value = safeJsonStringify(aggregated);
+
+        setProgress(total, i + 1, stopRequested ? 'Stopping…' : 'Running');
+
+        if (i < iterations.length - 1 && delayMs > 0) await sleep(delayMs);
+      }
+
+      aggregated.meta.completedAt = nowIso();
+      aggregated.meta.summary = {
+        total: iterations.length,
+        completed,
+        failed,
+        stopped: stopRequested,
+      };
+      $('aggOut').value = safeJsonStringify(aggregated);
+
+      setProgress(total, Math.min(total, aggregated.results.length), stopRequested ? 'Stopped' : 'Done');
+      addLog(`Done. completed=${completed} failed=${failed} stopped=${stopRequested}`);
+
+      setButtonsRunning(false);
+    }
+
+    // ---------------- UI Actions ------------------------------------------
+    function clearAll() {
+      if (isRunning) return;
+      $('bearerToken').value = '';
+      $('rememberToken').checked = false;
+      $('delayMs').value = '1500';
+      $('timeoutMs').value = '30000';
+      $('useProxy').checked = false;
+      $('proxyBaseUrl').value = 'http://localhost:8787';
+      $('qpSearchId').value = '';
+      $('qpPageIndex').value = '';
+      $('qpPageSize').value = '';
+      $('qpFetchAll').value = '';
+      $('qpWhere').value = '';
+      $('runnerEnabled').checked = false;
+      $('runnerMode').value = 'singleVar';
+      $('runnerText').value = '';
+      $('runnerCsvFile').value = '';
+      runnerTable = { headers: [], rows: [] };
+      renderCsvColumns();
+      toggleRunnerUi();
+      clearLogs();
+      resetStats();
+      $('aggOut').value = '';
+      setTokenStatus();
+      try { localStorage.removeItem(STORAGE_KEY); } catch {}
+      updateUrlPreview();
+    }
+
+    async function copyAgg() {
+      const txt = $('aggOut').value || '';
+      if (!txt.trim()) { alert('Nothing to copy yet. Run a request first.'); return; }
+      try {
+        await navigator.clipboard.writeText(txt);
+        $('btnCopyAgg').classList.add('copied');
+        $('btnCopyAgg').textContent = 'Copied';
+        setTimeout(() => { $('btnCopyAgg').classList.remove('copied'); $('btnCopyAgg').textContent = 'Copy aggregated JSON'; }, 900);
+      } catch {
+        prompt('Copy aggregated JSON:', txt);
+      }
+    }
+
+    function downloadAgg() {
+      const txt = $('aggOut').value || '';
+      if (!txt.trim()) { alert('Nothing to download yet. Run a request first.'); return; }
+      const blob = new Blob([txt], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `syncapp_erp_api_runner_${new Date().toISOString().replace(/[:.]/g,'-')}.json`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(a.href);
+        a.remove();
+      }, 0);
+    }
+
+    async function pasteRunner() {
+      try {
+        const text = await navigator.clipboard.readText();
+        $('runnerText').value = text;
+        updateRunnerCounts();
+        saveState();
+      } catch {
+        alert('Unable to read from clipboard. Paste manually (Ctrl/Cmd+V).');
+      }
+    }
+
+    function genPageIndexRange() {
+      const start = prompt('Start pageIndex (integer):', '0');
+      if (start === null) return;
+      const end = prompt('End pageIndex (integer, inclusive):', '10');
+      if (end === null) return;
+      const step = prompt('Step:', '1');
+      if (step === null) return;
+      const s = Number(start), e = Number(end), st = Number(step);
+      if (!Number.isInteger(s) || !Number.isInteger(e) || !Number.isInteger(st) || st === 0) {
+        alert('Invalid range. Please enter integers and non-zero step.');
+        return;
+      }
+      const vals = [];
+      if (st > 0) for (let x = s; x <= e; x += st) vals.push(String(x));
+      else for (let x = s; x >= e; x += st) vals.push(String(x));
+      $('runnerText').value = vals.join('\n');
+      $('singleVarName').value = 'pageIndex';
+      updateRunnerCounts();
+      saveState();
+    }
+
+    // ---------------- Wire up events --------------------------------------
+    $('btnClearAll').addEventListener('click', clearAll);
+    $('btnClearToken').addEventListener('click', () => {
+      $('bearerToken').value = '';
+      setTokenStatus();
+      saveState();
+    });
+    $('bearerToken').addEventListener('input', () => { setTokenStatus(); saveState(); });
+    $('rememberToken').addEventListener('change', () => { saveState(); });
+    $('useProxy').addEventListener('change', () => { saveState(); });
+    $('proxyBaseUrl').addEventListener('input', () => { warnIfMixedContentProxy(); saveState(); });
+    $('environment').addEventListener('change', () => { updateUrlPreview(); });
+    $('erp').addEventListener('change', () => {
+      renderActionOptions();
+      renderPathParams();
+      updateUrlPreview();
+      saveState();
+    });
+    $('actionSearch').addEventListener('input', () => { renderActionOptions(); renderPathParams(); updateUrlPreview(); saveState(); });
+    $('actionSelect').addEventListener('change', () => { renderPathParams(); updateUrlPreview(); saveState(); });
+    ['qpSearchId','qpPageIndex','qpPageSize','qpFetchAll','qpWhere','delayMs','timeoutMs'].forEach(id => {
+      $(id).addEventListener('input', () => { updateUrlPreview(); updateRunnerCounts(); saveState(); });
+      $(id).addEventListener('change', () => { updateUrlPreview(); updateRunnerCounts(); saveState(); });
+    });
+
+    $('runnerEnabled').addEventListener('change', toggleRunnerUi);
+    $('runnerMode').addEventListener('change', () => { toggleSingleVarUi(); updateRunnerCounts(); });
+    $('singleVarName').addEventListener('change', () => { renderCsvColumns(); updateRunnerCounts(); saveState(); });
+    $('singleVarColumn').addEventListener('change', () => { updateRunnerCounts(); saveState(); });
+    $('runnerText').addEventListener('input', () => { updateRunnerCounts(); saveState(); });
+
+    $('runnerCsvFile').addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const table = parseDelimitedTable(text);
+        runnerTable = { ...table };
+        renderCsvColumns();
+        updateRunnerCounts();
+        saveState();
+        addLog(`Loaded runner CSV: ${runnerTable.rows.length} row(s), ${runnerTable.headers.length} column(s).`);
+      } catch (err) {
+        alert('Failed to read CSV: ' + String(err));
+      }
+    });
+
+    $('btnPasteRunner').addEventListener('click', pasteRunner);
+    $('btnClearRunner').addEventListener('click', () => {
+      $('runnerText').value = '';
+      $('runnerCsvFile').value = '';
+      runnerTable = { headers: [], rows: [] };
+      renderCsvColumns();
+      updateRunnerCounts();
+      saveState();
+    });
+    $('btnGenPageIndex').addEventListener('click', genPageIndexRange);
+
+    $('btnRunOnce').addEventListener('click', () => runRequests({ runnerMode: 'once' }));
+    $('btnRunRunner').addEventListener('click', () => runRequests({ runnerMode: 'runner' }));
+    $('btnStop').addEventListener('click', () => { stopRequested = true; addLog('Stop requested.'); });
+    $('btnClearResults').addEventListener('click', () => {
+      if (isRunning) return;
+      clearLogs();
+      resetStats();
+      aggregated = null;
+      $('aggOut').value = '';
+    });
+    $('btnCopyAgg').addEventListener('click', copyAgg);
+    $('btnDownloadAgg').addEventListener('click', downloadAgg);
+
+    // ---------------- Init -------------------------------------------------
+    (function init() {
+      renderActionOptions();
+      renderPathParams();
+      loadState();
+      applyUrlConfig();
+      warnIfMixedContentProxy();
+      // After loading state, rerender registry-dependent UI
+      renderActionOptions();
+      if (savedActionKey && [...$('actionSelect').options].some(o => o.value === savedActionKey)) {
+        $('actionSelect').value = savedActionKey;
+      }
+      // Restore action selection if saved
+      if ($('actionSelect').options.length) {
+        // keep current selection
+      }
+      renderPathParams();
+      toggleRunnerUi();
+      toggleSingleVarUi();
+      setTokenStatus();
+      updateUrlPreview();
+      updateRunnerCounts();
+    })();
+  </script>
+</body>
+</html>
+
+

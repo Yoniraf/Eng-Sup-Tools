@@ -38,6 +38,10 @@ Because the dashboard loads `assets/tools.json` via `fetch`, you should serve it
   - Python: `python -m http.server 8000`
   - Then open: `http://localhost:8000/index.html`
 
+## Desktop app (Windows + macOS) for SyncApp ERP API Runner
+Some internal services (SyncApp ERP) cannot be called from a browser due to CORP/CORS restrictions, so a desktop wrapper is provided.
+See `desktop/README.md`.
+
 ## Current tools
 - JSON Studio (side-by-side JSON editor + diff + CSV import/export + Coralogix log reconstructor + nested key-value extractor)
 - String Tools • Line Breaks (list delimiter conversion + SQL IN helper)
