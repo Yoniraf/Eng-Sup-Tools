@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Update SRS Generator</title>
+  <link rel="stylesheet" href="../assets/tool.css" />
+  <style>
+    .container{max-width:1100px;margin:0 auto;}
+    #idInput{min-height:210px}
+    #output{
+      min-height: 210px;
+      border-radius: 12px;
+      border: 1px solid var(--app-border);
+      background: rgba(2,6,23,.5);
+      padding: 10px 12px;
+      margin: 0;
+      overflow:auto;
+    }
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center}
+    .success{color: var(--app-accent-2); font-size: 12px; display:none}
+  </style>
+</head>
+<body>
+  <div class="page container">
+    <div class="card">
+      <div class="page-head">
+        <div>
+          <h1>Update SRS Generator</h1>
+          <div class="page-sub">Paste IDs (one per line) and generate a JSON array payload: <code>{ id, direction: 2, recordType: "bill", updateSRS: true }</code>.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <label for="idInput">Enter IDs (one per line)</label>
+      <textarea id="idInput" rows="10" placeholder="Example:&#10;465f546714ab4108&#10;b3e3fc9fc8df4662"></textarea>
+
+      <div class="actions">
+        <button type="button" onclick="generateStructure()">Generate</button>
+      </div>
+
+      <hr />
+
+      <label for="output">Generated Structure</label>
+      <pre id="output"></pre>
+
+      <div class="actions">
+        <button type="button" onclick="copyToClipboard()">Copy to Clipboard</button>
+        <div class="success" id="copySuccess">Copied to clipboard!</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Keep function names, element IDs, and output formatting identical to the original tool.
+    function generateStructure() {
+      const input = document.getElementById('idInput').value.trim();
+      const ids = input.split('\n').map(id => id.trim()).filter(id => id.length > 0);
+
+      const output = ids.map(id => ({
+        id: id,
+        direction: 2,
+        recordType: "bill",
+        updateSRS: true
+      }));
+
+      document.getElementById('output').textContent = JSON.stringify(output, null, 2);
+      document.getElementById('copySuccess').style.display = 'none';
+    }
+
+    function copyToClipboard() {
+      const output = document.getElementById('output').textContent;
+      navigator.clipboard.writeText(output).then(() => {
+        const successMsg = document.getElementById('copySuccess');
+        successMsg.style.display = 'block';
+        setTimeout(() => successMsg.style.display = 'none', 2000);
+      });
+    }
+  </script>
+</body>
+</html>
+
+

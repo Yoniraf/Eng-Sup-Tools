@@ -1,5 +1,5 @@
 {
-  "build": "v1",
+  "build": "v1.1",
   "tools": [
     {
       "id": "json-studio",
@@ -103,6 +103,14 @@
       "path": "./tools/CSV_Splitter.html",
       "icon": "\ud83d\udd10",
       "tags": ["CSV"]
+    },
+    {
+      "id": "update-srs-generator",
+      "title": "Update SRS Generator",
+      "description": "Generate a JSON array payload for updateSRS=true for a list of IDs (one per line).",
+      "path": "./tools/update-srs-generator.html",
+      "icon": "\ud83d\udd10",
+      "tags": ["SyncEngine", "SRS", "JSON", "Batch"]
     }
   ]
 }

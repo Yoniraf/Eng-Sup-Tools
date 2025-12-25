@@ -41,7 +41,7 @@
           <h1>Field Mapping Default Values Wizard</h1>
           <div class="page-sub">
             Turn a requestor CSV + pasted DB results into the final JSON payload, then (optionally) call the API.
-            <span class="muted">Token is never persisted.</span>
+            <span class="muted">No secrets are stored.</span>
           </div>
         </div>
         <div class="page-actions">
@@ -249,18 +249,15 @@
       </details>
     </div>
 
-    <div class="card">
+    <div class="card" id="cardRunApi">
       <h2>7) Run API (optional)</h2>
       <div class="muted">
-        This will POST the JSON payload from above using the bearer token. If your browser blocks the request (CORS / network), use the generated curl instead.
+        This step is currently hidden by default because the toolbox is served over HTTPS and this API is HTTP-only (browser mixed-content block).
+        Keep it here in case we re-enable HTTPS for the API later.
       </div>
 
       <label for="endpoint">API endpoint</label>
       <input id="endpoint" type="text" class="mono" />
-      <div class="muted hint">
-        Tip: start with sandbox. When validated, switch to production (or just change sbox → production in the endpoint).
-        If this API is <strong>HTTP-only</strong> (no HTTPS), the browser can’t call it from this HTTPS toolbox (mixed-content block) — use the generated curl or an HTTPS proxy.
-      </div>
 
       <div class="row" style="margin-top:10px">
         <div>
@@ -271,11 +268,12 @@
             <button id="btnClearToken" type="button" class="secondary">Clear token</button>
           </div>
         </div>
-      </div>
-
-      <div class="actions" style="margin-top:10px">
-        <button id="btnRunApi" type="button">Run API</button>
-        <button id="btnClearResponse" type="button" class="secondary">Clear response</button>
+        <div>
+          <label>&nbsp;</label>
+          <div class="actions" style="margin-top:0">
+            <button id="btnRunApi" type="button">Run API</button>
+          </div>
+        </div>
       </div>
 
       <div class="statbar">
@@ -297,11 +295,20 @@
     };
     const ENDPOINT_PATH = '/support-tools/fieldMappingDefaultValues/internal';
 
-    function defaultEndpointFor(env) {
-      // Avoid mixed-content when the toolbox is hosted on https.
-      // If the API doesn't support https, users can still override the endpoint manually,
-      // but then they should open the toolbox over http (or use curl).
-      const scheme = location.protocol === 'https:' ? 'https:' : 'http:';
+    // Flip to true if/when the API is callable from the browser (e.g. HTTPS + CORS).
+    const ENABLE_RUN_API = false;
+
+    function endpointForCurl(env) {
+      // Curl is not subject to browser mixed-content/CORS restrictions.
+      // Use HTTP by default since Swagger for this API is HTTP-only.
+      const scheme = 'http:';
+      const host = ENDPOINT_HOSTS[env] || ENDPOINT_HOSTS.sandbox;
+      return `${scheme}//${host}${ENDPOINT_PATH}`;
+    }
+
+    function endpointForBrowser(env) {
+      // If the API becomes HTTPS-capable, this is the endpoint we'd want the browser to call.
+      const scheme = 'https:';
       const host = ENDPOINT_HOSTS[env] || ENDPOINT_HOSTS.sandbox;
       return `${scheme}//${host}${ENDPOINT_PATH}`;
     }
@@ -393,7 +400,7 @@
     // --- Queries ------------------------------------------------------------
     function refreshQueries() {
       const instanceId = $('instanceId').value.trim() || '{instanceId}';
-      const fmId = $('fieldMappingId').value.trim() || '{FieldMappingId}';
+    //  const fmId = $('fieldMappingId').value.trim() || '{FieldMappingId}';
 
       $('queryPayerEntityMapping').value =
 `SELECT * FROM [TipaltiIntegration].[dbo].PayerEntityMapping WHERE instanceId = ${instanceId} ORDER BY id DESC`;
@@ -402,12 +409,7 @@
 `SELECT * FROM [TipaltiIntegration].[dbo].FieldsMapping WHERE instanceId = ${instanceId} AND recordType = 3 ORDER BY id DESC`;
 
       $('queryFieldsMappingDefaultValues').value =
-`SELECT * FROM [TipaltiIntegration].[dbo].FieldsMappingDefaultValues WHERE FieldMappingId = ${fmId} ORDER BY id DESC`;
-    }
-
-    function refreshEndpoint() {
-      const env = $('environment').value;
-      $('endpoint').value = defaultEndpointFor(env);
+`SELECT * FROM [TipaltiIntegration].[dbo].FieldsMappingDefaultValues WHERE FieldMappingId = ${instanceId} ORDER BY id DESC`;
     }
 
     // --- Requestor parsing/validation --------------------------------------
@@ -643,10 +645,9 @@
     }
 
     function buildCurl(jsonBody) {
-      const endpoint = $('endpoint').value.trim();
+      const endpoint = endpointForCurl($('environment')?.value || 'sandbox');
       const accept = $('acceptHeader').value;
-      const token = $('bearerToken').value.trim();
-      const safeToken = token ? token : '<PASTE_BEARER_TOKEN>';
+      const safeToken = '<PASTE_BEARER_TOKEN>';
       // Keep it simple and readable. Users can replace token.
       return [
         "curl -X 'POST' \\",
@@ -658,85 +659,6 @@
       ].join('\n');
     }
 
-    // --- API call -----------------------------------------------------------
-    async function runApi() {
-      const json = $('jsonOutput').value.trim();
-      if (!json) {
-        alert('Generate JSON first (step 6).');
-        return;
-      }
-      const endpoint = $('endpoint').value.trim();
-      const token = $('bearerToken').value.trim();
-      if (!endpoint) { alert('Missing endpoint'); return; }
-      if (!token) { alert('Missing bearer token'); return; }
-
-      $('httpStatus').textContent = '…';
-      $('httpTime').textContent = '…';
-      $('apiResponse').value = '';
-
-      const t0 = nowMs();
-      try {
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'accept': $('acceptHeader').value,
-            'authorization': `Bearer ${token}`,
-            'content-type': 'application/json'
-          },
-          body: json
-        });
-        const text = await res.text();
-        const t1 = nowMs();
-        $('httpStatus').textContent = `${res.status} ${res.ok ? 'OK' : 'ERROR'}`;
-        $('httpTime').textContent = `${Math.round(t1 - t0)} ms`;
-        $('apiResponse').value = text || '(empty response)';
-      } catch (err) {
-        const t1 = nowMs();
-        $('httpStatus').textContent = 'FAILED';
-        $('httpTime').textContent = `${Math.round(t1 - t0)} ms`;
-        const msg = String(err && err.message ? err.message : err);
-
-        let endpointProto = '';
-        try { endpointProto = new URL(endpoint).protocol; } catch { /* ignore */ }
-        const pageProto = location.protocol;
-        const mixedContent = (pageProto === 'https:' && endpointProto === 'http:');
-        const fileOrigin = (pageProto === 'file:');
-        const httpsOnlyAttempt = (pageProto === 'https:' && endpointProto === 'https:');
-
-        const extraHints = [];
-        if (mixedContent) {
-          extraHints.push(
-            `- Mixed content: this page is https but the endpoint is http (browser blocks the request).`,
-            `  Fix: use an https endpoint (if the API supports it), or use curl, or put an HTTPS proxy in front of the HTTP API.`
-          );
-        }
-        if (httpsOnlyAttempt) {
-          extraHints.push(
-            `- If Swagger works only on http:// for this API, the service may be HTTP-only (no TLS). In that case https:// calls will fail with "Failed to fetch".`,
-            `  Fix: use curl with http://, or add HTTPS support / an HTTPS reverse proxy for the API.`
-          );
-        }
-        if (fileOrigin) {
-          extraHints.push(
-            `- You opened the toolbox as a local file (file://). Browsers treat this as an opaque origin and many APIs will fail due to CORS.`,
-            `  Fix: open the toolbox via http(s) (e.g. host the folder with a simple static server) or use curl.`
-          );
-        }
-        if (!mixedContent && !fileOrigin) {
-          extraHints.push(`- If you're on VPN / internal network, make sure ${endpointProto || 'the endpoint'} is reachable from this machine/browser.`);
-        }
-
-        $('apiResponse').value =
-          `Request failed in the browser.\n\n` +
-          `Common causes:\n` +
-          `- CORS blocked by the API (preflight)\n` +
-          `- Network/DNS/VPN restrictions\n` +
-          (extraHints.length ? `\nMore likely in your case:\n${extraHints.map(x => x).join('\n')}\n\n` : `\n`) +
-          `Error: ${msg}\n\n` +
-          `Use the generated curl (Step 6 → Copy curl) from a trusted environment.`;
-      }
-    }
-
     // --- Wire up ------------------------------------------------------------
     function clearAll() {
       $('requestorCsv').value = '';
@@ -745,9 +667,9 @@
       $('fieldMappingId').value = '';
       $('jsonOutput').value = '';
       $('curlOutput').value = '';
-      $('apiResponse').value = '';
-      $('httpStatus').textContent = '—';
-      $('httpTime').textContent = '—';
+      if ($('apiResponse')) $('apiResponse').value = '';
+      if ($('httpStatus')) $('httpStatus').textContent = '—';
+      if ($('httpTime')) $('httpTime').textContent = '—';
       parsedRequestor = { headers: [], rows: [] };
       parsedPayerEntity = { headers: [], rows: [] };
       lastGenerated = null;
@@ -757,22 +679,80 @@
     }
 
     // Init
-    refreshEndpoint();
     refreshQueries();
     validateRequestor();
 
-    $('environment').addEventListener('change', () => { refreshEndpoint(); });
+    // Hide Run API step unless explicitly enabled
+    const runCard = $('cardRunApi');
+    if (runCard) runCard.style.display = ENABLE_RUN_API ? 'block' : 'none';
+    if (ENABLE_RUN_API) {
+      const env = $('environment')?.value || 'sandbox';
+      if ($('endpoint')) $('endpoint').value = endpointForBrowser(env);
+    }
+
+    $('environment').addEventListener('change', () => { /* affects curl endpoint only */ });
     $('instanceId').addEventListener('input', refreshQueries);
     $('fieldMappingId').addEventListener('input', refreshQueries);
     $('requestorCsv').addEventListener('input', () => { validateRequestor(); });
 
-    $('btnToggleToken').addEventListener('click', () => {
-      const el = $('bearerToken');
-      const isPw = el.type === 'password';
-      el.type = isPw ? 'text' : 'password';
-      $('btnToggleToken').textContent = isPw ? 'Hide' : 'Show';
-    });
-    $('btnClearToken').addEventListener('click', () => { $('bearerToken').value = ''; });
+    if (ENABLE_RUN_API) {
+      $('environment').addEventListener('change', () => {
+        const env = $('environment')?.value || 'sandbox';
+        if ($('endpoint')) $('endpoint').value = endpointForBrowser(env);
+      });
+
+      $('btnToggleToken')?.addEventListener('click', () => {
+        const el = $('bearerToken');
+        if (!el) return;
+        const isPw = el.type === 'password';
+        el.type = isPw ? 'text' : 'password';
+        $('btnToggleToken').textContent = isPw ? 'Hide' : 'Show';
+      });
+      $('btnClearToken')?.addEventListener('click', () => { if ($('bearerToken')) $('bearerToken').value = ''; });
+
+      async function runApi() {
+        const json = $('jsonOutput')?.value?.trim() || '';
+        if (!json) { alert('Generate JSON first (step 6).'); return; }
+        const endpoint = $('endpoint')?.value?.trim() || '';
+        const token = $('bearerToken')?.value?.trim() || '';
+        if (!endpoint) { alert('Missing endpoint'); return; }
+        if (!token) { alert('Missing bearer token'); return; }
+
+        $('httpStatus').textContent = '…';
+        $('httpTime').textContent = '…';
+        $('apiResponse').value = '';
+
+        const t0 = nowMs();
+        try {
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'accept': $('acceptHeader').value,
+              'authorization': `Bearer ${token}`,
+              'content-type': 'application/json'
+            },
+            body: json
+          });
+          const text = await res.text();
+          const t1 = nowMs();
+          $('httpStatus').textContent = `${res.status} ${res.ok ? 'OK' : 'ERROR'}`;
+          $('httpTime').textContent = `${Math.round(t1 - t0)} ms`;
+          $('apiResponse').value = text || '(empty response)';
+        } catch (err) {
+          const t1 = nowMs();
+          $('httpStatus').textContent = 'FAILED';
+          $('httpTime').textContent = `${Math.round(t1 - t0)} ms`;
+          const msg = String(err && err.message ? err.message : err);
+          $('apiResponse').value =
+            `Request failed in the browser.\n\n` +
+            `Error: ${msg}\n\n` +
+            `This step is intended only when the API supports HTTPS + CORS.\n` +
+            `For now, use the generated curl in Step 6.`;
+        }
+      }
+
+      $('btnRunApi')?.addEventListener('click', runApi);
+    }
 
     $('btnCopyQ1').addEventListener('click', async (e) => {
       await navigator.clipboard.writeText($('queryPayerEntityMapping').value);
@@ -860,13 +840,6 @@
       }
       await navigator.clipboard.writeText(lastGenerated.curl);
       flashCopied(e.target);
-    });
-
-    $('btnRunApi').addEventListener('click', runApi);
-    $('btnClearResponse').addEventListener('click', () => {
-      $('apiResponse').value = '';
-      $('httpStatus').textContent = '—';
-      $('httpTime').textContent = '—';
     });
 
     $('btnClearAll').addEventListener('click', clearAll);

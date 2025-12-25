@@ -9,6 +9,7 @@ Everything runs in your browser (no server). Files you upload (CSV/log exports) 
 - [TSV/CSV → JSON Converter](#tsvcsv--json-converter)
 - [SQL Template Generator](#sql-template-generator)
 - [Retry Specific SyncEngine (Batch Retry)](#retry-specific-syncengine-batch-retry)
+- [Update SRS Generator](#update-srs-generator)
 - [Bulk Update Record State (MongoDB bulkWrite Generator)](#bulk-update-record-state-mongodb-bulkwrite-generator)
 - [SQL CASE WHEN Generator](#sql-case-when-generator)
 - [API Key / Hash Generator](#api-key--hash-generator)
@@ -115,6 +116,22 @@ Everything runs in your browser (no server). Files you upload (CSV/log exports) 
 - Logs payloads and results in the Results panel
 
 **Security note**: bearer tokens are sensitive—use short-lived tokens, avoid screen sharing, and clear inputs when done.
+
+---
+
+## Update SRS Generator
+
+**What it is**: Generates a JSON array payload for a list of IDs (one per line):
+`[{ id, direction: 2, recordType: "bill", updateSRS: true }, ...]`
+
+**How to use**
+- Paste IDs (one per line)
+- Click **Generate**
+- Click **Copy to Clipboard**
+
+**Notes**
+- Empty lines are ignored; IDs are trimmed
+- Output is pretty-printed JSON (2-space indentation)
 
 ---
 
