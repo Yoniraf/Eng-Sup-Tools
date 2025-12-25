@@ -279,6 +279,23 @@
         <label for="runnerText">Paste values (single-variable mode: one per line / comma / tab)</label>
         <textarea id="runnerText" class="mono mid" placeholder="0&#10;1&#10;2&#10;3"></textarea>
 
+        <div id="singleVarTransform" class="grid" style="margin-top:10px">
+          <div>
+            <label for="singleVarPrefix">Value prefix (optional)</label>
+            <input id="singleVarPrefix" type="text" placeholder="e.g. tranId=" />
+            <div class="muted small" style="margin-top:6px">
+              Prepended to each pasted value in single-variable mode (useful for <code>where</code>).
+            </div>
+          </div>
+          <div>
+            <label for="singleVarSuffix">Value suffix (optional)</label>
+            <input id="singleVarSuffix" type="text" placeholder="e.g. '  (to close a quote)" />
+            <div class="muted small" style="margin-top:6px">
+              Appended to each pasted value. Example: prefix <code>tranId='</code> and suffix <code>'</code>.
+            </div>
+          </div>
+        </div>
+
         <div class="actions">
           <button id="btnPasteRunner" type="button" class="secondary">Paste from clipboard</button>
           <button id="btnClearRunner" type="button" class="secondary">Clear runner input</button>
@@ -691,6 +708,8 @@
         runnerMode: $('runnerMode').value,
         singleVarName: $('singleVarName').value,
         runnerText: $('runnerText').value,
+        singleVarPrefix: $('singleVarPrefix')?.value ?? '',
+        singleVarSuffix: $('singleVarSuffix')?.value ?? '',
         rememberToken: remember,
         aggMode: getAggregationMode(),
       };
@@ -719,6 +738,8 @@
         if (s.runnerMode) $('runnerMode').value = s.runnerMode;
         if (s.singleVarName) $('singleVarName').value = s.singleVarName;
         if (s.runnerText !== undefined) $('runnerText').value = s.runnerText;
+        if (typeof s.singleVarPrefix === 'string' && $('singleVarPrefix')) $('singleVarPrefix').value = s.singleVarPrefix;
+        if (typeof s.singleVarSuffix === 'string' && $('singleVarSuffix')) $('singleVarSuffix').value = s.singleVarSuffix;
         if (typeof s.rememberToken === 'boolean') $('rememberToken').checked = s.rememberToken;
         if (s.rememberToken && s.bearerToken) $('bearerToken').value = s.bearerToken;
         if (s.aggMode && $('aggMode')) $('aggMode').value = s.aggMode;
@@ -924,7 +945,9 @@
         values = parseList($('runnerText').value);
       }
 
-      return values.map((v, i) => ({ __index: i, vars: { [varName]: v } }));
+      const prefix = $('singleVarPrefix')?.value ?? '';
+      const suffix = $('singleVarSuffix')?.value ?? '';
+      return values.map((v, i) => ({ __index: i, vars: { [varName]: `${prefix}${v}${suffix}` } }));
     }
 
     function updateRunnerCounts() {
@@ -1328,6 +1351,8 @@
     $('singleVarName').addEventListener('change', () => { renderCsvColumns(); updateRunnerCounts(); saveState(); });
     $('singleVarColumn').addEventListener('change', () => { updateRunnerCounts(); saveState(); });
     $('runnerText').addEventListener('input', () => { updateRunnerCounts(); saveState(); });
+    $('singleVarPrefix').addEventListener('input', () => { updateRunnerCounts(); saveState(); });
+    $('singleVarSuffix').addEventListener('input', () => { updateRunnerCounts(); saveState(); });
 
     $('runnerCsvFile').addEventListener('change', async (e) => {
       const file = e.target.files && e.target.files[0];
