@@ -205,6 +205,25 @@ It also generates a ready-to-run `curl` command (helpful because the browser is 
 
 ---
 
+## SyncApp ERP API Runner (Web + Proxy)
+
+**What it is**: The browser-based version of the SyncApp runner (same UI/flow as the desktop app).
+
+**Important**: SyncApp ERP endpoints enforce CORP/CORS (`Cross-Origin-Resource-Policy: same-origin`), so the web tool needs a proxy.
+
+**Local proxy (dev / local usage)**
+- Start the proxy:
+  - `node tools/syncapp-erp-api-proxy.js`
+- Optionally restrict origins:
+  - `ALLOWED_ORIGINS="http://127.0.0.1:5500" node tools/syncapp-erp-api-proxy.js`
+- In the tool, enable “Use proxy” and set:
+  - `http://127.0.0.1:8787`
+
+**GitHub Pages note**
+- If you use the tool from GitHub Pages (HTTPS), the proxy must also be reachable via **HTTPS** (otherwise the browser blocks it as mixed content).
+
+---
+
 ## Update SRS Generator
 
 **What it is**: Generates a JSON array payload for a list of IDs (one per line):
