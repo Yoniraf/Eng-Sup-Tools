@@ -75,21 +75,6 @@
       ]
     },
     {
-      "id": "syncapp-erp-api-runner-web",
-      "title": "SyncApp ERP API Runner (Web + Proxy)",
-      "description": "Web version of the SyncApp ERP API Runner. Requires a proxy (local or hosted) due to CORP/CORS on SyncApp ERP endpoints.",
-      "path": "./tools/syncapp-erp-api-runner.html",
-      "icon": "\ud83c\udf10",
-      "tags": [
-        "SyncApp",
-        "ERP",
-        "API",
-        "Runner",
-        "Proxy",
-        "CORS"
-      ]
-    },
-    {
       "id": "retrySepecificSyncEngine",
       "title": "Retry Specific SyncEngine",
       "description": "Batch-call SyncEngine scheduleRetrySync for a list of IDs (with batching, retries, progress, and logs).",

@@ -1,6 +1,6 @@
 {
   "name": "syncapp-erp-api-runner-desktop",
-  "version": "1.0.0",
+  "version": "1.0.9",
   "private": true,
   "description": "Desktop wrapper for SyncApp ERP API Runner (auto-starts local proxy).",
   "main": "main.js",
