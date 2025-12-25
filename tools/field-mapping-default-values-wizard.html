@@ -259,6 +259,7 @@
       <input id="endpoint" type="text" class="mono" />
       <div class="muted hint">
         Tip: start with sandbox. When validated, switch to production (or just change sbox → production in the endpoint).
+        If this API is <strong>HTTP-only</strong> (no HTTPS), the browser can’t call it from this HTTPS toolbox (mixed-content block) — use the generated curl or an HTTPS proxy.
       </div>
 
       <div class="row" style="margin-top:10px">
@@ -700,12 +701,19 @@
         const pageProto = location.protocol;
         const mixedContent = (pageProto === 'https:' && endpointProto === 'http:');
         const fileOrigin = (pageProto === 'file:');
+        const httpsOnlyAttempt = (pageProto === 'https:' && endpointProto === 'https:');
 
         const extraHints = [];
         if (mixedContent) {
           extraHints.push(
             `- Mixed content: this page is https but the endpoint is http (browser blocks the request).`,
-            `  Fix: use an https endpoint (try switching http→https), or open the toolbox over http, or use curl.`
+            `  Fix: use an https endpoint (if the API supports it), or use curl, or put an HTTPS proxy in front of the HTTP API.`
+          );
+        }
+        if (httpsOnlyAttempt) {
+          extraHints.push(
+            `- If Swagger works only on http:// for this API, the service may be HTTP-only (no TLS). In that case https:// calls will fail with "Failed to fetch".`,
+            `  Fix: use curl with http://, or add HTTPS support / an HTTPS reverse proxy for the API.`
           );
         }
         if (fileOrigin) {
