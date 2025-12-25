@@ -335,6 +335,19 @@
         The aggregated output is always valid JSON. Use “Copy aggregated JSON” to paste into tickets/tools.
       </div>
 
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label for="aggMode">Aggregation mode</label>
+          <select id="aggMode">
+            <option value="full" selected>Full (meta + results)</option>
+            <option value="entities">Entities only (flatten body.entities)</option>
+          </select>
+          <div class="muted small" style="margin-top:6px">
+            “Entities only” outputs a JSON array containing only <code>body.entities</code> from each successful response.
+          </div>
+        </div>
+      </div>
+
       <div class="actions">
         <button id="btnCopyAgg" type="button">Copy aggregated JSON</button>
         <button id="btnDownloadAgg" type="button" class="secondary">Download JSON</button>
@@ -439,6 +452,33 @@
     function safeJsonStringify(obj) {
       try { return JSON.stringify(obj, null, 2); }
       catch (e) { return JSON.stringify({ error: 'Failed to stringify', message: String(e) }, null, 2); }
+    }
+
+    function getAggregationMode() {
+      return $('aggMode')?.value || 'full';
+    }
+
+    function computeEntitiesOnly(fullAgg) {
+      const out = [];
+      const results = (fullAgg && Array.isArray(fullAgg.results)) ? fullAgg.results : [];
+      for (const r of results) {
+        const entities = r && r.body && Array.isArray(r.body.entities) ? r.body.entities : null;
+        if (entities && entities.length) out.push(...entities);
+      }
+      return out;
+    }
+
+    function refreshAggregatedOutput() {
+      if (!aggregated) {
+        $('aggOut').value = '';
+        return;
+      }
+      const mode = getAggregationMode();
+      if (mode === 'entities') {
+        $('aggOut').value = safeJsonStringify(computeEntitiesOnly(aggregated));
+      } else {
+        $('aggOut').value = safeJsonStringify(aggregated);
+      }
     }
 
     function addLog(line) {
@@ -652,6 +692,7 @@
         singleVarName: $('singleVarName').value,
         runnerText: $('runnerText').value,
         rememberToken: remember,
+        aggMode: getAggregationMode(),
       };
       if (remember) s.bearerToken = $('bearerToken').value;
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
@@ -680,6 +721,7 @@
         if (s.runnerText !== undefined) $('runnerText').value = s.runnerText;
         if (typeof s.rememberToken === 'boolean') $('rememberToken').checked = s.rememberToken;
         if (s.rememberToken && s.bearerToken) $('bearerToken').value = s.bearerToken;
+        if (s.aggMode && $('aggMode')) $('aggMode').value = s.aggMode;
       } catch {}
     }
 
@@ -1038,7 +1080,7 @@
         results: []
       };
 
-      $('aggOut').value = safeJsonStringify(aggregated);
+      refreshAggregatedOutput();
       let completed = 0;
       let failed = 0;
 
@@ -1144,7 +1186,7 @@
         });
 
         // Update aggregated output progressively (so you can copy even mid-run)
-        $('aggOut').value = safeJsonStringify(aggregated);
+        refreshAggregatedOutput();
 
         setProgress(total, i + 1, stopRequested ? 'Stopping…' : 'Running');
 
@@ -1158,7 +1200,7 @@
         failed,
         stopped: stopRequested,
       };
-      $('aggOut').value = safeJsonStringify(aggregated);
+      refreshAggregatedOutput();
 
       setProgress(total, Math.min(total, aggregated.results.length), stopRequested ? 'Stopped' : 'Done');
       addLog(`Done. completed=${completed} failed=${failed} stopped=${stopRequested}`);
@@ -1190,6 +1232,7 @@
       clearLogs();
       resetStats();
       $('aggOut').value = '';
+      if ($('aggMode')) $('aggMode').value = 'full';
       setTokenStatus();
       try { localStorage.removeItem(STORAGE_KEY); } catch {}
       updateUrlPreview();
@@ -1325,6 +1368,7 @@
     });
     $('btnCopyAgg').addEventListener('click', copyAgg);
     $('btnDownloadAgg').addEventListener('click', downloadAgg);
+    $('aggMode').addEventListener('change', () => { refreshAggregatedOutput(); saveState(); });
 
     // ---------------- Init -------------------------------------------------
     (function init() {
@@ -1348,6 +1392,7 @@
       setTokenStatus();
       updateUrlPreview();
       updateRunnerCounts();
+      refreshAggregatedOutput();
     })();
   </script>
 </body>
