@@ -1,0 +1,834 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Field Mapping Default Values Wizard</title>
+  <link rel="stylesheet" href="../assets/tool.css" />
+  <style>
+    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
+    .grid{display:grid; grid-template-columns: 1fr 1fr; gap: 12px}
+    @media (max-width: 980px){ .grid{grid-template-columns: 1fr} }
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+    .statbar{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      border:1px solid var(--app-border); border-radius:999px;
+      padding:6px 10px; background: rgba(2,6,23,.35);
+      font-size:12px; color: var(--app-muted);
+    }
+    .ok{color: rgba(34,197,94,.95)}
+    .warn{color: rgba(250,204,21,.95)}
+    .bad{color: rgba(248,113,113,.95)}
+    textarea.big{min-height: 220px}
+    textarea.mid{min-height: 160px}
+    button.copied{border-color: rgba(34,197,94,.65)}
+    .hint{margin-top:8px}
+    details summary{cursor:pointer}
+    .table-wrap{overflow:auto; border:1px solid var(--app-border); border-radius: 12px; background: rgba(2,6,23,.35)}
+    table{border-collapse:collapse; width:100%; font-size:12px}
+    th, td{padding:8px 10px; border-bottom:1px solid rgba(148,163,184,.14); vertical-align:top}
+    th{color: var(--app-muted); font-weight:600; text-align:left; position:sticky; top:0; background: rgba(15,23,42,.9)}
+    td{color: var(--app-text)}
+    code{background: rgba(2,6,23,.35); border:1px solid var(--app-border); padding:2px 6px; border-radius: 8px}
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+      <div class="page-head">
+        <div>
+          <h1>Field Mapping Default Values Wizard</h1>
+          <div class="page-sub">
+            Turn a requestor CSV + pasted DB results into the final JSON payload, then (optionally) call the API.
+            <span class="muted">Token is never persisted.</span>
+          </div>
+        </div>
+        <div class="page-actions">
+          <button id="btnClearAll" class="secondary" type="button">Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>1) Environment</h2>
+      <div class="muted">
+        Pick environment and enter <code>instanceId</code>. The environment is used to prefill the API endpoint later.
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label for="environment">Environment</label>
+          <select id="environment">
+            <option value="sandbox" selected>Sandbox (sbox)</option>
+            <option value="production">Production</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="instanceId">instanceId</label>
+          <input id="instanceId" type="number" inputmode="numeric" placeholder="2565" value="2565" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2) Input: requestor CSV</h2>
+      <div class="muted">
+        The requestor does <strong>not</strong> need access to this tool — they only need to send back a CSV that matches the template.
+        Required columns: <code>defaultValueType</code>, <code>value ID</code>, <code>value name</code>, <code>applyToPayment</code>, <code>isReadOnly</code>, <code>Entity name</code>.
+        Booleans can be true/false, 1/0, yes/no.
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label for="acceptHeader">Accept header</label>
+          <select id="acceptHeader">
+            <option value="text/csv" selected>text/csv (recommended)</option>
+            <option value="application/json">application/json</option>
+            <option value="text/plain">text/plain</option>
+          </select>
+          <div class="muted hint">Matches your curl example. The tool will display raw response text.</div>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <div class="actions" style="margin-top:0">
+            <button id="btnDownloadTemplate" type="button">Download CSV template</button>
+            <button id="btnPasteRequestor" type="button" class="secondary">Paste from clipboard</button>
+            <button id="btnExampleRequestor" type="button" class="secondary">Load example</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label for="requestorCsvFile">Upload CSV (optional)</label>
+          <input id="requestorCsvFile" type="file" />
+        </div>
+      </div>
+
+      <label for="requestorCsv">Requestor CSV</label>
+      <textarea id="requestorCsv" class="mono big" placeholder="defaultValueType,value ID,value name,applyToPayment,isReadOnly,Entity name&#10;1,1,DA-Algonquin,true,true,Algonquin"></textarea>
+
+      <div class="statbar">
+        <span class="pill">Rows: <strong id="reqCount">0</strong></span>
+        <span class="pill">Errors: <strong id="reqErrors">0</strong></span>
+        <span class="pill">Warnings: <strong id="reqWarnings">0</strong></span>
+      </div>
+
+      <details style="margin-top:10px">
+        <summary class="muted">Show requestor validation details</summary>
+        <pre id="reqIssues" class="mono"></pre>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>3) PayerEntityMapping query + input</h2>
+      <div class="muted">
+        Run this query in your DB client (copy with headers), then paste the results below. The tool will map requestor <code>Entity name</code> → <code>payerEntityMappingId</code>.
+      </div>
+
+      <label>PayerEntityMapping query</label>
+      <textarea id="queryPayerEntityMapping" class="mono" rows="3" readonly></textarea>
+      <div class="actions">
+        <button id="btnCopyQ1" type="button">Copy query</button>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label for="payerEntityPaste">Paste PayerEntityMapping results</label>
+          <textarea id="payerEntityPaste" class="mono mid" placeholder="(paste grid output here)"></textarea>
+          <div class="actions">
+            <button id="btnParsePayerEntity" type="button" class="secondary">Parse</button>
+          </div>
+        </div>
+        <div>
+          <label for="payerEntityIdColumn">payerEntityMappingId column</label>
+          <select id="payerEntityIdColumn"></select>
+          <label for="payerEntityNameColumn">Entity name column (to match requestor “Entity name”)</label>
+          <select id="payerEntityNameColumn"></select>
+          <div class="muted hint">If your DB output headers differ, adjust these before generating.</div>
+        </div>
+      </div>
+
+      <details style="margin-top:10px">
+        <summary class="muted">Show parsed PayerEntityMapping table (reference only)</summary>
+        <div class="table-wrap" style="max-height:320px; margin-top:10px">
+          <table>
+            <thead><tr id="payerEntityTableHead"></tr></thead>
+            <tbody id="payerEntityTableBody"></tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>4) FieldsMapping query + input</h2>
+      <div class="muted">
+        Run this query to find the correct <code>fieldMappingId</code> (usually stable per instance), then enter it below.
+      </div>
+
+      <label>FieldsMapping query</label>
+      <textarea id="queryFieldsMapping" class="mono" rows="3" readonly></textarea>
+      <div class="actions">
+        <button id="btnCopyQ2" type="button">Copy query</button>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label for="fieldMappingId">fieldMappingId</label>
+          <input id="fieldMappingId" type="number" inputmode="numeric" placeholder="e.g. 57339" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>5) FieldsMappingDefaultValues query (sanity check)</h2>
+      <div class="muted">
+        Optional: run this query to see existing default values for the chosen <code>fieldMappingId</code>.
+      </div>
+      <label>FieldsMappingDefaultValues query</label>
+      <textarea id="queryFieldsMappingDefaultValues" class="mono" rows="3" readonly></textarea>
+      <div class="actions">
+        <button id="btnCopyQ3" type="button">Copy query</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>6) Generate payload</h2>
+      <div class="muted">
+        Click Generate to build the final JSON payload. Any unmapped rows will be listed as errors.
+      </div>
+
+      <div class="actions" style="margin-top:10px">
+        <button id="btnGenerate" type="button">Generate JSON</button>
+        <button id="btnCopyJson" type="button" class="secondary">Copy JSON</button>
+        <button id="btnDownloadJson" type="button" class="secondary">Download JSON</button>
+        <button id="btnCopyCurl" type="button" class="secondary">Copy curl</button>
+      </div>
+
+      <div class="statbar">
+        <span class="pill">Output records: <strong id="outCount">0</strong></span>
+        <span class="pill">Merge errors: <strong id="mergeErrors">0</strong></span>
+        <span class="pill">Merge warnings: <strong id="mergeWarnings">0</strong></span>
+      </div>
+
+      <details style="margin-top:10px">
+        <summary class="muted">Show merge details</summary>
+        <pre id="mergeIssues" class="mono"></pre>
+      </details>
+
+      <label for="jsonOutput">Final JSON payload</label>
+      <textarea id="jsonOutput" class="mono big" readonly></textarea>
+
+      <details style="margin-top:10px">
+        <summary class="muted">Show curl (for when the browser is blocked by CORS/VPN)</summary>
+        <label for="curlOutput">curl</label>
+        <textarea id="curlOutput" class="mono mid" readonly></textarea>
+      </details>
+
+      <details style="margin-top:10px">
+        <summary class="muted">Preview table (first 20)</summary>
+        <div class="table-wrap" style="max-height:320px; margin-top:10px">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>externalId</th>
+                <th>externalName</th>
+                <th>defaultValueType</th>
+                <th>applyToPayment</th>
+                <th>isReadOnly</th>
+                <th>fieldMappingId</th>
+                <th>payerEntityMappingId</th>
+              </tr>
+            </thead>
+            <tbody id="previewBody"></tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>7) Run API (optional)</h2>
+      <div class="muted">
+        This will POST the JSON payload from above using the bearer token. If your browser blocks the request (CORS / network), use the generated curl instead.
+      </div>
+
+      <label for="endpoint">API endpoint</label>
+      <input id="endpoint" type="text" class="mono" />
+      <div class="muted hint">
+        Tip: start with sandbox. When validated, switch to production (or just change sbox → production in the endpoint).
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label for="bearerToken">Bearer token</label>
+          <input id="bearerToken" type="password" placeholder="Paste token (not saved)" />
+          <div class="actions">
+            <button id="btnToggleToken" type="button" class="secondary">Show</button>
+            <button id="btnClearToken" type="button" class="secondary">Clear token</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions" style="margin-top:10px">
+        <button id="btnRunApi" type="button">Run API</button>
+        <button id="btnClearResponse" type="button" class="secondary">Clear response</button>
+      </div>
+
+      <div class="statbar">
+        <span class="pill">HTTP: <strong id="httpStatus">—</strong></span>
+        <span class="pill">Time: <strong id="httpTime">—</strong></span>
+      </div>
+
+      <label for="apiResponse">API response (raw)</label>
+      <textarea id="apiResponse" class="mono big" readonly></textarea>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const ENDPOINTS = {
+      sandbox: 'http://syncapp-api.sbox.tipalti.com/support-tools/fieldMappingDefaultValues/internal',
+      production: 'http://syncapp-api.production.tipalti.com/support-tools/fieldMappingDefaultValues/internal'
+    };
+
+    function nowMs(){ return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(); }
+
+    function flashCopied(btn, text = 'Copied') {
+      const orig = btn.textContent;
+      btn.classList.add('copied');
+      btn.textContent = text;
+      setTimeout(() => { btn.classList.remove('copied'); btn.textContent = orig; }, 900);
+    }
+
+    function detectDelimiter(firstLine) {
+      if (!firstLine) return ',';
+      if (firstLine.includes('\t')) return '\t';
+      if (firstLine.includes(';')) return ';';
+      return ',';
+    }
+
+    function parseDelimitedLine(line, delimiter) {
+      // Supports quotes for comma/semicolon; tabs are treated as raw split.
+      if (delimiter === '\t') return line.split('\t').map(x => x.trim());
+      const out = [];
+      let cur = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          const next = line[i + 1];
+          if (inQuotes && next === '"') { cur += '"'; i++; continue; }
+          inQuotes = !inQuotes;
+          continue;
+        }
+        if (ch === delimiter && !inQuotes) {
+          out.push(cur.trim());
+          cur = '';
+          continue;
+        }
+        cur += ch;
+      }
+      out.push(cur.trim());
+      return out.map(x => x.replace(/^"|"$/g, ''));
+    }
+
+    function parseDelimitedTable(text) {
+      const lines = String(text || '')
+        .split(/\r?\n/)
+        .map(l => l.replace(/\r/g, ''))
+        .filter(l => l.trim().length > 0);
+      if (!lines.length) return { headers: [], rows: [], delimiter: ',' };
+      const delimiter = detectDelimiter(lines[0]);
+      const headers = parseDelimitedLine(lines[0], delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
+      const rows = [];
+      for (let i = 1; i < lines.length; i++) {
+        const values = parseDelimitedLine(lines[i], delimiter);
+        const obj = {};
+        for (let j = 0; j < headers.length; j++) obj[headers[j]] = values[j] ?? '';
+        rows.push(obj);
+      }
+      return { headers, rows, delimiter };
+    }
+
+    function normKey(s) { return String(s ?? '').trim(); }
+    function normHeader(h) { return String(h ?? '').trim().toLowerCase().replace(/\s+/g, ''); }
+
+    function parseBool(val) {
+      if (typeof val === 'boolean') return val;
+      const s = String(val ?? '').trim().toLowerCase();
+      if (['true','t','1','yes','y'].includes(s)) return true;
+      if (['false','f','0','no','n'].includes(s)) return false;
+      return null;
+    }
+
+    function parseIntStrict(val) {
+      if (typeof val === 'number' && Number.isFinite(val)) return Math.trunc(val);
+      const s = String(val ?? '').trim();
+      if (!s) return null;
+      if (!/^-?\d+$/.test(s)) return null;
+      const n = Number(s);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    // --- State --------------------------------------------------------------
+    let parsedRequestor = { headers: [], rows: [] };
+    let parsedPayerEntity = { headers: [], rows: [] };
+    let lastGenerated = null; // { payload: [], json: string, curl: string }
+
+    // --- Queries ------------------------------------------------------------
+    function refreshQueries() {
+      const instanceId = $('instanceId').value.trim() || '{instanceId}';
+    //  const fmId = $('fieldMappingId').value.trim() || '{FieldMappingId}';
+
+      $('queryPayerEntityMapping').value =
+`SELECT * FROM [TipaltiIntegration].[dbo].PayerEntityMapping WHERE instanceId = ${instanceId} ORDER BY id DESC`;
+
+      $('queryFieldsMapping').value =
+`SELECT * FROM [TipaltiIntegration].[dbo].FieldsMapping WHERE instanceId = ${instanceId} AND recordType = 3 ORDER BY id DESC`;
+
+      $('queryFieldsMappingDefaultValues').value =
+`SELECT * FROM [TipaltiIntegration].[dbo].FieldsMappingDefaultValues WHERE FieldMappingId = ${instanceId} ORDER BY id DESC`;
+    }
+
+    function refreshEndpoint() {
+      const env = $('environment').value;
+      $('endpoint').value = ENDPOINTS[env] || ENDPOINTS.sandbox;
+    }
+
+    // --- Requestor parsing/validation --------------------------------------
+    // Requestor template headers (spaces/case tolerated via normHeader):
+    // defaultValueType, value ID, value name, applyToPayment, isReadOnly, Entity name
+    const REQUIRED_REQ_COLS = ['defaultValueType','value ID','value name','applyToPayment','isReadOnly','Entity name'];
+
+    function validateRequestor() {
+      const issues = [];
+      const warnings = [];
+      const errors = [];
+
+      const table = parseDelimitedTable($('requestorCsv').value);
+      parsedRequestor = { headers: table.headers, rows: table.rows };
+
+      const headersNorm = new Map(table.headers.map(h => [normHeader(h), h]));
+      const missing = REQUIRED_REQ_COLS.filter(c => !headersNorm.has(normHeader(c)));
+      if (missing.length) errors.push(`Missing required columns: ${missing.join(', ')}`);
+
+      // map to canonical fields
+      const canonical = table.rows.map((r, idx) => {
+        const get = (name) => r[headersNorm.get(normHeader(name))] ?? '';
+        const rec = {
+          row: idx + 1,
+          valueId: normKey(get('value ID')),
+          valueName: normKey(get('value name')),
+          entityName: normKey(get('Entity name')),
+          defaultValueTypeRaw: get('defaultValueType'),
+          applyToPaymentRaw: get('applyToPayment'),
+          isReadOnlyRaw: get('isReadOnly'),
+        };
+        return rec;
+      });
+
+      // per-row validation
+      const seenExtId = new Map();
+      canonical.forEach((r) => {
+        if (!r.valueId) errors.push(`Row ${r.row}: value ID is empty`);
+        if (!r.valueName) warnings.push(`Row ${r.row}: value name is empty`);
+        if (!r.entityName) errors.push(`Row ${r.row}: Entity name is empty`);
+        const dvt = parseIntStrict(r.defaultValueTypeRaw);
+        if (dvt === null) errors.push(`Row ${r.row}: defaultValueType must be an integer (got: ${JSON.stringify(r.defaultValueTypeRaw)})`);
+        const ap = parseBool(r.applyToPaymentRaw);
+        if (ap === null) errors.push(`Row ${r.row}: applyToPayment must be boolean-like (got: ${JSON.stringify(r.applyToPaymentRaw)})`);
+        const ro = parseBool(r.isReadOnlyRaw);
+        if (ro === null) errors.push(`Row ${r.row}: isReadOnly must be boolean-like (got: ${JSON.stringify(r.isReadOnlyRaw)})`);
+
+        const key = normKey(r.valueId);
+        if (key) {
+          if (!seenExtId.has(key)) seenExtId.set(key, []);
+          seenExtId.get(key).push(r.row);
+        }
+      });
+
+      // duplicates (by externalId)
+      for (const [k, rows] of seenExtId.entries()) {
+        if (rows.length > 1) warnings.push(`Duplicate value ID "${k}" in rows: ${rows.join(', ')}`);
+      }
+
+      // UI
+      $('reqCount').textContent = String(canonical.length);
+      $('reqErrors').textContent = String(errors.length);
+      $('reqWarnings').textContent = String(warnings.length);
+      $('reqIssues').textContent = [...errors.map(e => `ERROR: ${e}`), ...warnings.map(w => `WARN:  ${w}`)].join('\n');
+
+      return { canonical, errors, warnings, headersNorm };
+    }
+
+    // --- PayerEntityMapping parsing/config ---------------------------------
+    function suggestColumn(headers, candidates) {
+      const byNorm = new Map(headers.map(h => [normHeader(h), h]));
+      for (const c of candidates) {
+        const found = byNorm.get(normHeader(c));
+        if (found) return found;
+      }
+      // fallback: try contains
+      for (const h of headers) {
+        const nh = normHeader(h);
+        for (const c of candidates) if (nh.includes(normHeader(c))) return h;
+      }
+      return headers[0] || '';
+    }
+
+    function parsePayerEntity() {
+      const t = parseDelimitedTable($('payerEntityPaste').value);
+      parsedPayerEntity = { headers: t.headers, rows: t.rows };
+      if (!t.rows.length || !t.headers.length) {
+        alert('No rows detected. Paste the PayerEntityMapping query results (including header row).');
+        renderPayerEntityTable([]);
+        return;
+      }
+      renderPayerEntityTable(t);
+
+      // Populate column dropdowns
+      const idSel = $('payerEntityIdColumn');
+      const nameSel = $('payerEntityNameColumn');
+      if (idSel && nameSel) {
+        idSel.innerHTML = '';
+        nameSel.innerHTML = '';
+        t.headers.forEach(h => {
+          const o1 = document.createElement('option'); o1.value = h; o1.textContent = h; idSel.appendChild(o1);
+          const o2 = document.createElement('option'); o2.value = h; o2.textContent = h; nameSel.appendChild(o2);
+        });
+        idSel.value = suggestColumn(t.headers, ['id', 'payerentitymappingid']);
+        nameSel.value = suggestColumn(t.headers, ['name', 'entityname', 'payerentityname', 'externalname']);
+      }
+    }
+
+    function renderPayerEntityTable(t) {
+      const head = $('payerEntityTableHead');
+      const body = $('payerEntityTableBody');
+      if (!head || !body) return;
+      head.innerHTML = '';
+      body.innerHTML = '';
+      if (!t || !t.headers || !t.rows) return;
+      const headers = t.headers.slice(0, 12); // keep it readable
+      headers.forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        head.appendChild(th);
+      });
+      t.rows.slice(0, 50).forEach(r => {
+        const tr = document.createElement('tr');
+        headers.forEach(h => {
+          const td = document.createElement('td');
+          td.textContent = normKey(r[h]);
+          tr.appendChild(td);
+        });
+        body.appendChild(tr);
+      });
+    }
+
+    function buildPayerEntityNameLookup() {
+      const rows = parsedPayerEntity.rows || [];
+      const idH = $('payerEntityIdColumn')?.value;
+      const nameH = $('payerEntityNameColumn')?.value;
+      const dupes = [];
+      const byName = new Map();
+      if (!idH || !nameH) return { byName, dupes };
+      for (const r of rows) {
+        const id = parseIntStrict(r[idH]);
+        const name = normKey(r[nameH]);
+        if (id === null || !name) continue;
+        const k = name.toLowerCase();
+        if (byName.has(k) && byName.get(k) !== id) dupes.push(`Duplicate entity name "${name}" maps to multiple IDs`);
+        byName.set(k, id);
+      }
+      return { byName, dupes };
+    }
+
+    // --- Generate -----------------------------------------------------------
+    function generatePayload() {
+      const mergeErrors = [];
+      const mergeWarnings = [];
+
+      const { canonical, errors: reqErrs, warnings: reqWarns } = validateRequestor();
+      mergeWarnings.push(...reqWarns);
+      if (reqErrs.length) mergeErrors.push(...reqErrs);
+
+      const fieldMappingId = parseIntStrict($('fieldMappingId').value);
+      if (fieldMappingId === null) mergeErrors.push('fieldMappingId is required and must be an integer');
+
+      if (!parsedPayerEntity.rows?.length) mergeErrors.push('PayerEntityMapping paste is required (step 5). Click Parse after pasting.');
+      const lookup = buildPayerEntityNameLookup();
+      mergeWarnings.push(...lookup.dupes);
+
+      const payload = [];
+      canonical.forEach((r, idx) => {
+        const dvt = parseIntStrict(r.defaultValueTypeRaw);
+        const ap = parseBool(r.applyToPaymentRaw);
+        const ro = parseBool(r.isReadOnlyRaw);
+        const payerEntityMappingId = r.entityName ? (lookup.byName.get(r.entityName.toLowerCase()) ?? null) : null;
+        if (payerEntityMappingId === null) {
+          mergeErrors.push(`Row ${r.row}: no payerEntityMappingId found for Entity name=${JSON.stringify(r.entityName)}`);
+          return;
+        }
+        if (dvt === null || ap === null || ro === null || fieldMappingId === null) return;
+
+        payload.push({
+          fieldMappingId,
+          defaultValueType: dvt,
+          externalId: r.valueId,
+          externalName: r.valueName,
+          applyToPayment: ap,
+          isReadOnly: ro,
+          payerEntityMappingId
+        });
+      });
+
+      // UI stats/issues
+      $('outCount').textContent = String(payload.length);
+      $('mergeErrors').textContent = String(mergeErrors.length);
+      $('mergeWarnings').textContent = String(mergeWarnings.length);
+      $('mergeIssues').textContent = [...mergeErrors.map(e => `ERROR: ${e}`), ...mergeWarnings.map(w => `WARN:  ${w}`)].join('\n');
+
+      // Output JSON + preview
+      const json = JSON.stringify(payload, null, 2);
+      $('jsonOutput').value = json;
+      renderPreview(payload);
+
+      const curl = buildCurl(json);
+      $('curlOutput').value = curl;
+      lastGenerated = { payload, json, curl };
+
+      // refresh query 3 (uses FieldMappingId)
+      refreshQueries();
+
+      return { payload, json, curl, mergeErrors, mergeWarnings };
+    }
+
+    function renderPreview(payload) {
+      const body = $('previewBody');
+      body.innerHTML = '';
+      payload.slice(0, 20).forEach((r, idx) => {
+        const tr = document.createElement('tr');
+        const cells = [
+          String(idx + 1),
+          r.externalId,
+          r.externalName,
+          String(r.defaultValueType),
+          String(r.applyToPayment),
+          String(r.isReadOnly),
+          String(r.fieldMappingId),
+          String(r.payerEntityMappingId)
+        ];
+        cells.forEach((c) => {
+          const td = document.createElement('td');
+          td.textContent = c;
+          tr.appendChild(td);
+        });
+        body.appendChild(tr);
+      });
+    }
+
+    function buildCurl(jsonBody) {
+      const endpoint = $('endpoint').value.trim();
+      const accept = $('acceptHeader').value;
+      const token = $('bearerToken').value.trim();
+      const safeToken = token ? token : '<PASTE_BEARER_TOKEN>';
+      // Keep it simple and readable. Users can replace token.
+      return [
+        "curl -X 'POST' \\",
+        `  '${endpoint}' \\`,
+        `  -H 'accept: ${accept}' \\`,
+        `  -H 'Authorization: Bearer ${safeToken}' \\`,
+        "  -H 'Content-Type: application/json' \\",
+        `  -d '${jsonBody.replace(/'/g, "'\\''")}'`
+      ].join('\n');
+    }
+
+    // --- API call -----------------------------------------------------------
+    async function runApi() {
+      const json = $('jsonOutput').value.trim();
+      if (!json) {
+        alert('Generate JSON first (step 6).');
+        return;
+      }
+      const endpoint = $('endpoint').value.trim();
+      const token = $('bearerToken').value.trim();
+      if (!endpoint) { alert('Missing endpoint'); return; }
+      if (!token) { alert('Missing bearer token'); return; }
+
+      $('httpStatus').textContent = '…';
+      $('httpTime').textContent = '…';
+      $('apiResponse').value = '';
+
+      const t0 = nowMs();
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'accept': $('acceptHeader').value,
+            'authorization': `Bearer ${token}`,
+            'content-type': 'application/json'
+          },
+          body: json
+        });
+        const text = await res.text();
+        const t1 = nowMs();
+        $('httpStatus').textContent = `${res.status} ${res.ok ? 'OK' : 'ERROR'}`;
+        $('httpTime').textContent = `${Math.round(t1 - t0)} ms`;
+        $('apiResponse').value = text || '(empty response)';
+      } catch (err) {
+        const t1 = nowMs();
+        $('httpStatus').textContent = 'FAILED';
+        $('httpTime').textContent = `${Math.round(t1 - t0)} ms`;
+        const msg = String(err && err.message ? err.message : err);
+        $('apiResponse').value =
+          `Request failed in the browser.\n\n` +
+          `Common causes:\n` +
+          `- CORS blocked by the API\n` +
+          `- Network/DNS/VPN restrictions\n\n` +
+          `Error: ${msg}\n\n` +
+          `Use the generated curl (Step 6 → Copy curl) from a trusted environment.`;
+      }
+    }
+
+    // --- Wire up ------------------------------------------------------------
+    function clearAll() {
+      $('requestorCsv').value = '';
+      $('requestorCsvFile').value = '';
+      $('payerEntityPaste').value = '';
+      $('fieldMappingId').value = '';
+      $('jsonOutput').value = '';
+      $('curlOutput').value = '';
+      $('apiResponse').value = '';
+      $('httpStatus').textContent = '—';
+      $('httpTime').textContent = '—';
+      parsedRequestor = { headers: [], rows: [] };
+      parsedPayerEntity = { headers: [], rows: [] };
+      lastGenerated = null;
+      validateRequestor();
+      refreshQueries();
+      renderPayerEntityTable([]);
+    }
+
+    // Init
+    refreshEndpoint();
+    refreshQueries();
+    validateRequestor();
+
+    $('environment').addEventListener('change', () => { refreshEndpoint(); });
+    $('instanceId').addEventListener('input', refreshQueries);
+    $('fieldMappingId').addEventListener('input', refreshQueries);
+    $('requestorCsv').addEventListener('input', () => { validateRequestor(); });
+
+    $('btnToggleToken').addEventListener('click', () => {
+      const el = $('bearerToken');
+      const isPw = el.type === 'password';
+      el.type = isPw ? 'text' : 'password';
+      $('btnToggleToken').textContent = isPw ? 'Hide' : 'Show';
+    });
+    $('btnClearToken').addEventListener('click', () => { $('bearerToken').value = ''; });
+
+    $('btnCopyQ1').addEventListener('click', async (e) => {
+      await navigator.clipboard.writeText($('queryPayerEntityMapping').value);
+      flashCopied(e.target);
+    });
+    $('btnCopyQ2').addEventListener('click', async (e) => {
+      await navigator.clipboard.writeText($('queryFieldsMapping').value);
+      flashCopied(e.target);
+    });
+    $('btnCopyQ3').addEventListener('click', async (e) => {
+      await navigator.clipboard.writeText($('queryFieldsMappingDefaultValues').value);
+      flashCopied(e.target);
+    });
+
+    $('requestorCsvFile').addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const text = await file.text();
+      $('requestorCsv').value = text;
+      validateRequestor();
+    });
+
+    $('btnPasteRequestor').addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        $('requestorCsv').value = text;
+        validateRequestor();
+      } catch {
+        alert('Unable to read clipboard. Paste manually (Ctrl/Cmd+V).');
+      }
+    });
+
+    $('btnDownloadTemplate').addEventListener('click', () => {
+      const template =
+`defaultValueType,value ID,value name,applyToPayment,isReadOnly,Entity name
+`;
+      const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'fieldMappingDefaultValues_requestor_template.csv';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    $('btnExampleRequestor').addEventListener('click', () => {
+      $('requestorCsv').value =
+`defaultValueType,value ID,value name,applyToPayment,isReadOnly,Entity name
+1,1,DA-Algonquin,true,true,Algonquin
+1,19,DC - Washington DC,true,true,Washington DC`;
+      validateRequestor();
+    });
+
+    $('btnParsePayerEntity').addEventListener('click', parsePayerEntity);
+
+    $('btnGenerate').addEventListener('click', () => {
+      // Ensure payer entity config is shown if they pasted but didn't click parse.
+      if ($('payerEntityPaste').value.trim() && !parsedPayerEntity.rows.length) parsePayerEntity();
+      generatePayload();
+    });
+
+    $('btnCopyJson').addEventListener('click', async (e) => {
+      const text = $('jsonOutput').value;
+      if (!text.trim()) return;
+      await navigator.clipboard.writeText(text);
+      flashCopied(e.target);
+    });
+
+    $('btnDownloadJson').addEventListener('click', () => {
+      const text = $('jsonOutput').value;
+      if (!text.trim()) return;
+      const blob = new Blob([text + '\n'], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'fieldMappingDefaultValues_payload.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    $('btnCopyCurl').addEventListener('click', async (e) => {
+      if (!lastGenerated?.curl) {
+        // generate with placeholder token
+        const json = $('jsonOutput').value.trim();
+        if (!json) { alert('Generate JSON first.'); return; }
+        lastGenerated = { ...(lastGenerated || {}), curl: buildCurl(json) };
+      }
+      await navigator.clipboard.writeText(lastGenerated.curl);
+      flashCopied(e.target);
+    });
+
+    $('btnRunApi').addEventListener('click', runApi);
+    $('btnClearResponse').addEventListener('click', () => {
+      $('apiResponse').value = '';
+      $('httpStatus').textContent = '—';
+      $('httpTime').textContent = '—';
+    });
+
+    $('btnClearAll').addEventListener('click', clearAll);
+  </script>
+</body>
+</html>
+
+

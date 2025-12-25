@@ -24,7 +24,7 @@
 <body>
   <div class="page container">
     <div class="card">
-      <h1>SQL Template Generator</h1>
+      <h1>Query Template Generator</h1>
       <div class="muted">
         Paste a SQL template with placeholders like <code>{tipaltiid}</code>, <code>{externalid}</code>, <code>{instanceid}</code>.
         Upload a CSV, and the tool will generate one SQL query per row by replacing placeholders using the CSV headers.
@@ -33,7 +33,7 @@
 
     <div class="card">
       <label for="sql-template">SQL template</label>
-      <textarea id="sql-template" placeholder="Write your SQL template here...&#10;&#10;Example:&#10;INSERT INTO ... VALUES ('{tipaltiid}', '{externalid}', {instanceid}, GETDATE());"></textarea>
+      <textarea id="sql-template" placeholder="Write your Query template here...&#10;&#10;Example:&#10;INSERT INTO ... VALUES ('{tipaltiid}', '{externalid}', {instanceid}, GETDATE());"></textarea>
 
       <div class="filebox">
         <div class="muted">CSV file:</div>
@@ -47,7 +47,7 @@
       </div>
 
       <label for="output">Generated output</label>
-      <textarea id="output" placeholder="Generated SQL queries will appear here..." readonly></textarea>
+      <textarea id="output" placeholder="Generated Query queries will appear here..." readonly></textarea>
     </div>
   </div>
 
@@ -57,7 +57,7 @@
       const fileInput = document.getElementById('file-input').files[0];
 
       if (!sqlTemplate || !fileInput) {
-        alert('Please provide both a SQL template and a CSV file.');
+        alert('Please provide both a Query template and a CSV file.');
         return;
       }
 

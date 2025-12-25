@@ -47,21 +47,30 @@
   }
 
   function updateActiveStyles() {
-    const items = els.list.querySelectorAll('a.tool-item');
-    items.forEach(a => {
-      a.classList.toggle('active', a.dataset.id === activeId);
+    const items = els.list.querySelectorAll('li.tool-item');
+    items.forEach((li) => {
+      const isActive = li.dataset.id === activeId;
+      li.classList.toggle('active', isActive);
+
+      const a = li.querySelector('a');
+      if (a) {
+        if (isActive) a.setAttribute('aria-current', 'page');
+        else a.removeAttribute('aria-current');
+      }
     });
   }
 
   function render(list) {
     els.list.innerHTML = '';
     list.forEach(tool => {
+      const li = document.createElement('li');
+      li.className = 'tool-item';
+      li.dataset.id = tool.id;
+
       const a = document.createElement('a');
       a.href = resolveToolPath(tool.path);
       a.target = '_blank';
       a.rel = 'noopener';
-      a.dataset.id = tool.id;
-      a.className = 'tool-item';
       a.title = tool.title;
 
       a.addEventListener('click', (e) => {
@@ -102,7 +111,8 @@
       a.appendChild(icon);
       a.appendChild(meta);
 
-      els.list.appendChild(a);
+      li.appendChild(a);
+      els.list.appendChild(li);
     });
 
     updateActiveStyles();
