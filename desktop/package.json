@@ -8,21 +8,16 @@
   "license": "UNLICENSED",
   "scripts": {
     "sync": "node scripts/sync-app-assets.js",
-    "icons": "node scripts/generate-icons.js",
-    "dev": "npm run sync && npm run icons && electron .",
-    "dist": "npm run sync && npm run icons && electron-builder"
+    "dev": "npm run sync && electron .",
+    "dist": "npm run sync && electron-builder --publish never"
   },
   "devDependencies": {
     "electron": "^31.0.0",
-    "electron-builder": "^24.13.3",
-    "sharp": "^0.33.5"
+    "electron-builder": "^24.13.3"
   },
   "build": {
     "appId": "com.engsup.syncapp-erp-api-runner",
     "productName": "SyncApp ERP API Runner",
-    "directories": {
-      "buildResources": "build"
-    },
     "files": [
       "main.js",
       "preload.js",
@@ -30,14 +25,12 @@
     ],
     "asar": true,
     "mac": {
-      "icon": "build/icon.icns",
       "target": [
         "dmg",
         "zip"
       ]
     },
     "win": {
-      "icon": "build/icon.ico",
       "target": [
         "nsis",
         "zip"

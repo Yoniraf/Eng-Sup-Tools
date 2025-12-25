@@ -41,7 +41,4 @@ npm run dist
 
 Artifacts will be created under `desktop/dist/` (varies by OS).
 
-## Icon
-The app icon is generated during build from `desktop/assets/icon.svg`.
-
 
