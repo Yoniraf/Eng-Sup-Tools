@@ -290,10 +290,20 @@
   <script>
     const $ = (id) => document.getElementById(id);
 
-    const ENDPOINTS = {
-      sandbox: 'http://syncapp-api.sbox.tipalti.com/support-tools/fieldMappingDefaultValues/internal',
-      production: 'http://syncapp-api.production.tipalti.com/support-tools/fieldMappingDefaultValues/internal'
+    const ENDPOINT_HOSTS = {
+      sandbox: 'syncapp-api.sbox.tipalti.com',
+      production: 'syncapp-api.production.tipalti.com'
     };
+    const ENDPOINT_PATH = '/support-tools/fieldMappingDefaultValues/internal';
+
+    function defaultEndpointFor(env) {
+      // Avoid mixed-content when the toolbox is hosted on https.
+      // If the API doesn't support https, users can still override the endpoint manually,
+      // but then they should open the toolbox over http (or use curl).
+      const scheme = location.protocol === 'https:' ? 'https:' : 'http:';
+      const host = ENDPOINT_HOSTS[env] || ENDPOINT_HOSTS.sandbox;
+      return `${scheme}//${host}${ENDPOINT_PATH}`;
+    }
 
     function nowMs(){ return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(); }
 
@@ -382,7 +392,7 @@
     // --- Queries ------------------------------------------------------------
     function refreshQueries() {
       const instanceId = $('instanceId').value.trim() || '{instanceId}';
-    //  const fmId = $('fieldMappingId').value.trim() || '{FieldMappingId}';
+      const fmId = $('fieldMappingId').value.trim() || '{FieldMappingId}';
 
       $('queryPayerEntityMapping').value =
 `SELECT * FROM [TipaltiIntegration].[dbo].PayerEntityMapping WHERE instanceId = ${instanceId} ORDER BY id DESC`;
@@ -391,12 +401,12 @@
 `SELECT * FROM [TipaltiIntegration].[dbo].FieldsMapping WHERE instanceId = ${instanceId} AND recordType = 3 ORDER BY id DESC`;
 
       $('queryFieldsMappingDefaultValues').value =
-`SELECT * FROM [TipaltiIntegration].[dbo].FieldsMappingDefaultValues WHERE FieldMappingId = ${instanceId} ORDER BY id DESC`;
+`SELECT * FROM [TipaltiIntegration].[dbo].FieldsMappingDefaultValues WHERE FieldMappingId = ${fmId} ORDER BY id DESC`;
     }
 
     function refreshEndpoint() {
       const env = $('environment').value;
-      $('endpoint').value = ENDPOINTS[env] || ENDPOINTS.sandbox;
+      $('endpoint').value = defaultEndpointFor(env);
     }
 
     // --- Requestor parsing/validation --------------------------------------
@@ -684,11 +694,36 @@
         $('httpStatus').textContent = 'FAILED';
         $('httpTime').textContent = `${Math.round(t1 - t0)} ms`;
         const msg = String(err && err.message ? err.message : err);
+
+        let endpointProto = '';
+        try { endpointProto = new URL(endpoint).protocol; } catch { /* ignore */ }
+        const pageProto = location.protocol;
+        const mixedContent = (pageProto === 'https:' && endpointProto === 'http:');
+        const fileOrigin = (pageProto === 'file:');
+
+        const extraHints = [];
+        if (mixedContent) {
+          extraHints.push(
+            `- Mixed content: this page is https but the endpoint is http (browser blocks the request).`,
+            `  Fix: use an https endpoint (try switching http→https), or open the toolbox over http, or use curl.`
+          );
+        }
+        if (fileOrigin) {
+          extraHints.push(
+            `- You opened the toolbox as a local file (file://). Browsers treat this as an opaque origin and many APIs will fail due to CORS.`,
+            `  Fix: open the toolbox via http(s) (e.g. host the folder with a simple static server) or use curl.`
+          );
+        }
+        if (!mixedContent && !fileOrigin) {
+          extraHints.push(`- If you're on VPN / internal network, make sure ${endpointProto || 'the endpoint'} is reachable from this machine/browser.`);
+        }
+
         $('apiResponse').value =
           `Request failed in the browser.\n\n` +
           `Common causes:\n` +
-          `- CORS blocked by the API\n` +
-          `- Network/DNS/VPN restrictions\n\n` +
+          `- CORS blocked by the API (preflight)\n` +
+          `- Network/DNS/VPN restrictions\n` +
+          (extraHints.length ? `\nMore likely in your case:\n${extraHints.map(x => x).join('\n')}\n\n` : `\n`) +
           `Error: ${msg}\n\n` +
           `Use the generated curl (Step 6 → Copy curl) from a trusted environment.`;
       }
