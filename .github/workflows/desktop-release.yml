@@ -30,10 +30,6 @@ jobs:
 
       - name: Build installers
         working-directory: desktop
-        env:
-          # electron-builder uses this token for GitHub API (publishing artifacts on release).
-          # It's automatically provided by GitHub Actions.
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run dist
 
       - name: Upload artifacts (always)
