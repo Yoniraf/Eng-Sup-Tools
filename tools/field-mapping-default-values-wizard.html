@@ -572,7 +572,7 @@
       const fieldMappingId = parseIntStrict($('fieldMappingId').value);
       if (fieldMappingId === null) mergeErrors.push('fieldMappingId is required and must be an integer');
 
-      if (!parsedPayerEntity.rows?.length) mergeErrors.push('PayerEntityMapping paste is required (step 5). Click Parse after pasting.');
+      if (!parsedPayerEntity.rows?.length) mergeErrors.push('PayerEntityMapping paste is required (step 3). Click Parse after pasting.');
       const lookup = buildPayerEntityNameLookup();
       mergeWarnings.push(...lookup.dupes);
 

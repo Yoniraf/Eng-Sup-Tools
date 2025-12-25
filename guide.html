@@ -190,9 +190,17 @@
     <div class="doc-layout">
       <nav class="toc" aria-label="Tool Guide table of contents">
         <div class="title">Tools</div>
+        <a href="#getting-started">
+          <div class="name">Getting started</div>
+          <div class="desc">How to open the toolbox, share deep links, and handle SyncApp browser limitations.</div>
+        </a>
         <a href="#json-studio">
           <div class="name">JSON Studio</div>
           <div class="desc">Side-by-side JSON editor + diff, CSV import/export, log reconstructor, key-value extractor.</div>
+        </a>
+        <a href="#field-mapping-default-values-wizard">
+          <div class="name">Field Mapping Default Values Wizard</div>
+          <div class="desc">Generate FieldMappingDefaultValues JSON payload + curl from requestor CSV + DB results.</div>
         </a>
         <a href="#line-breaks">
           <div class="name">String Tools • Line Breaks</div>
@@ -209,6 +217,14 @@
         <a href="#syncengine-batch-retry">
           <div class="name">Retry Specific SyncEngine</div>
           <div class="desc">Batch-call SyncEngine <code>scheduleRetrySync</code> with retries + progress logs.</div>
+        </a>
+        <a href="#syncapp-erp-api-runner">
+          <div class="name">SyncApp ERP API Runner</div>
+          <div class="desc">Postman-style runner for SyncApp ERP APIs (single run + runner mode + aggregated JSON).</div>
+        </a>
+        <a href="#syncapp-erp-api-runner-desktop-download">
+          <div class="name">SyncApp ERP API Runner (Desktop Download)</div>
+          <div class="desc">Recommended for SyncApp calls — avoids browser CORP/CORS by starting a local proxy.</div>
         </a>
         <a href="#update-srs-generator">
           <div class="name">Update SRS Generator</div>
@@ -233,6 +249,32 @@
       </nav>
 
       <main class="content">
+        <section class="tool" id="getting-started">
+          <h2>Getting started (new users)</h2>
+          <p class="meta">
+            Open the toolbox in <code>index.html</code>, pick a tool from the sidebar, and use the top bar to search and share deep links.
+            Many tools store state in browser <code>localStorage</code> for convenience — use “Clear” buttons when working with sensitive data.
+          </p>
+          <div class="grid">
+            <div class="panel">
+              <h3>Basics</h3>
+              <ul>
+                <li><strong>Open the toolbox</strong>: hosted link or local server.</li>
+                <li><strong>Deep links</strong>: share <code>index.html?tool=&lt;tool-id&gt;</code>.</li>
+                <li><strong>Open in new tab</strong>: use the top bar action to work full-screen.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>SyncApp tools & browser limitations</h3>
+              <ul>
+                <li>Some SyncApp endpoints return <code>Cross-Origin-Resource-Policy: same-origin</code>, so hosted browser calls can fail with <code>TypeError: Failed to fetch</code>.</li>
+                <li><strong>Recommended</strong>: use <strong>SyncApp ERP API Runner (Desktop Download)</strong> (starts a proxy automatically).</li>
+                <li><strong>Alternative</strong>: use the web runner + an HTTPS proxy (HTTPS page + HTTP proxy will be blocked as mixed content).</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
         <section class="tool" id="json-studio">
           <h2>JSON Studio</h2>
           <p class="meta">
@@ -268,6 +310,36 @@
           <div class="note">
             <strong>Nested JSON Key-Value Extractor</strong>: paste a JSON <em>array</em>, refresh keys, select dot-path keys (e.g. <code>a.b</code>),
             then extract into a JSON array of objects. You can load from an editor or inject extracted JSON back into an editor.
+          </div>
+        </section>
+
+        <section class="tool" id="field-mapping-default-values-wizard">
+          <h2>Field Mapping Default Values Wizard</h2>
+          <p class="meta">
+            A step-by-step wizard to generate a <code>FieldMappingDefaultValues</code> JSON payload from a requestor CSV + DB results,
+            and generate a ready-to-run <code>curl</code> command (useful when the browser is blocked by mixed-content/CORS).
+          </p>
+          <div class="grid">
+            <div class="panel">
+              <h3>How to use</h3>
+              <ul>
+                <li><strong>Environment + instanceId</strong>: select Sandbox/Production and enter <code>instanceId</code>.</li>
+                <li><strong>Requestor CSV</strong>: upload or paste CSV with required columns:
+                  <code>defaultValueType</code>, <code>value ID</code>, <code>value name</code>, <code>applyToPayment</code>, <code>isReadOnly</code>, <code>Entity name</code>.</li>
+                <li><strong>PayerEntityMapping</strong>: run the tool’s query, paste results (including headers), click <code>Parse</code>, and confirm the right columns.</li>
+                <li><strong>FieldsMapping</strong>: run the tool’s query to find <code>fieldMappingId</code> and enter it.</li>
+                <li><strong>Generate</strong>: click <code>Generate JSON</code>, then copy/download.</li>
+                <li><strong>Call API</strong>: click <code>Copy curl</code>, paste into terminal, replace <code>&lt;PASTE_BEARER_TOKEN&gt;</code>.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Outputs & notes</h3>
+              <ul>
+                <li><strong>Payload</strong>: array of objects containing <code>fieldMappingId</code>, <code>defaultValueType</code>, <code>externalId</code>, <code>externalName</code>, <code>applyToPayment</code>, <code>isReadOnly</code>, <code>payerEntityMappingId</code>.</li>
+                <li><strong>Merge behavior</strong>: if an “Entity name” from the requestor CSV doesn’t match the DB paste, it becomes a merge error and is skipped.</li>
+                <li><strong>Security</strong>: the tool doesn’t store secrets; still clear tokens/inputs after use.</li>
+              </ul>
+            </div>
           </div>
         </section>
 
@@ -378,6 +450,63 @@
           </div>
           <div class="note">
             <strong>Security note</strong>: bearer tokens are sensitive. Prefer short-lived tokens, avoid screen sharing, and clear the tool input when done.
+          </div>
+        </section>
+
+        <section class="tool" id="syncapp-erp-api-runner">
+          <h2>SyncApp ERP API Runner</h2>
+          <p class="meta">
+            A Postman-style runner for SyncApp ERP APIs (NetSuite / Intacct / QBO): single-run or runner mode (CSV/paste),
+            with aggregated JSON output you can copy into tickets/tools.
+          </p>
+          <div class="grid">
+            <div class="panel">
+              <h3>What you need</h3>
+              <ul>
+                <li><strong>Environment</strong>: <code>sbox</code> or <code>production</code>.</li>
+                <li><strong>ERP</strong>: NetSuite / Intacct / QBO.</li>
+                <li><strong>Bearer token</strong> (only remembered if you opt in).</li>
+                <li><strong>Action</strong>: choose from the built-in registry and fill placeholders (e.g. <code>payerPublicId</code>, <code>id</code>, <code>recordType</code>).</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Proxy + runner mode</h3>
+              <ul>
+                <li><strong>Proxy</strong>: if you see <code>TypeError: Failed to fetch</code> / status 0, enable <code>Use local proxy</code> and set a proxy base URL. If this page is HTTPS, the proxy must be HTTPS too.</li>
+                <li><strong>Runner mode</strong>: iterate a single variable list (paste) or provide full CSV rows to override multiple variables per request.</li>
+                <li><strong>Output</strong>: aggregated JSON with <code>meta</code> + <code>results[]</code>, including per-iteration resolved vars, URL, status, elapsed time, and parsed body (when possible).</li>
+              </ul>
+            </div>
+          </div>
+          <div class="note">
+            <strong>Security note</strong>: avoid sharing bearer tokens in tickets or screen shares; use the Clear buttons when done.
+          </div>
+        </section>
+
+        <section class="tool" id="syncapp-erp-api-runner-desktop-download">
+          <h2>SyncApp ERP API Runner (Desktop Download)</h2>
+          <p class="meta">
+            A Windows/macOS desktop wrapper for the SyncApp ERP API runner UI. Recommended because it avoids browser CORP/CORS issues by
+            automatically starting a local proxy and pre-configuring the web runner to use it.
+          </p>
+          <div class="grid">
+            <div class="panel">
+              <h3>Why desktop</h3>
+              <ul>
+                <li>Some SyncApp hosts respond with <code>Cross-Origin-Resource-Policy: same-origin</code>, which breaks browser <code>fetch</code> from hosted tools.</li>
+                <li>The desktop app behaves like the old runner executable: <strong>it just works</strong> (proxy is automatic).</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Download & use</h3>
+              <ul>
+                <li><strong>Download</strong>: open the latest release and pick the right installer for your OS.</li>
+                <li><strong>Run</strong>: open the app, paste bearer token, choose ERP/action, run once or runner mode.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="note">
+            Latest downloads: <code>https://github.com/yoniraf/Eng-Sup-Tools/releases/latest</code>
           </div>
         </section>
 
