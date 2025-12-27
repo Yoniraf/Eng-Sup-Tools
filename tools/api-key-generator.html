@@ -68,8 +68,9 @@
 
   <script>
     function generateCurrentTimestamp() {
-      const timestamp = Date.now().toString();
-      document.getElementById('timestamp').value = timestamp;
+      // Match the "SOAP API Generator": UNIX timestamp in seconds
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      document.getElementById('timestamp').value = String(nowSeconds);
     }
 
     function copyTimestamp() {
@@ -81,21 +82,20 @@
 
     function generateHash() {
       const payerName = document.getElementById('payerName').value;
-      const idap = document.getElementById('idap').value;
+      const idap = document.getElementById('idap').value || '';
       const timestamp = document.getElementById('timestamp').value;
-      const eat = document.getElementById('eat').value;
+      const eat = document.getElementById('eat').value || '';
       const key = document.getElementById('key').value;
 
-      if (!payerName || !idap || !timestamp || !key) {
-        alert("Please fill in payer name, idap, timestamp, and key.");
+      // Match the "SOAP API Generator": require payerName + timestamp + key
+      if (!payerName || !timestamp || !key) {
+        alert('Please fill in all required fields.');
         return;
       }
 
       const message = payerName + idap + timestamp + eat;
-      const hash = CryptoJS.HmacSHA256(message, key);
-      const hashBase64 = CryptoJS.enc.Base64.stringify(hash);
-
-      document.getElementById('output').value = hashBase64;
+      const hash = CryptoJS.HmacSHA256(message, key).toString(CryptoJS.enc.Hex);
+      document.getElementById('output').value = hash;
     }
 
     function copyHash() {
