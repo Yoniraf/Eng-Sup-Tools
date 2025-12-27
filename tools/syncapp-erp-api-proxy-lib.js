@@ -40,7 +40,7 @@ function validateTarget(rawUrl) {
   return { ok: true, url: u };
 }
 
-function doRequest({ url, method, headers, timeoutMs }) {
+function doRequest({ url, method, headers, timeoutMs, body }) {
   return new Promise((resolve) => {
     const lib = url.protocol === 'https:' ? https : http;
     const req = lib.request(
@@ -81,6 +81,15 @@ function doRequest({ url, method, headers, timeoutMs }) {
       });
     }
 
+    const m = String(method || 'GET').toUpperCase();
+    if (body !== undefined && body !== null && !['GET', 'HEAD'].includes(m)) {
+      const bodyStr = String(body);
+      try {
+        // Content-Length helps some upstreams; safe to compute for UTF-8 strings.
+        req.setHeader('Content-Length', Buffer.byteLength(bodyStr, 'utf8'));
+      } catch {}
+      req.write(bodyStr);
+    }
     req.end();
   });
 }
@@ -186,6 +195,7 @@ function createProxyServer({ allowedOrigins, enableHealth = true } = {}) {
         const method = String(payload.method || 'GET').toUpperCase();
         const headers = sanitizeHeaders(payload.headers || {});
         const timeoutMs = payload.timeoutMs;
+        const body = payload.body;
 
         const v = validateTarget(payload.url);
         if (!v.ok) {
@@ -195,7 +205,7 @@ function createProxyServer({ allowedOrigins, enableHealth = true } = {}) {
           return;
         }
 
-        const result = await doRequest({ url: v.url, method, headers, timeoutMs });
+        const result = await doRequest({ url: v.url, method, headers, timeoutMs, body });
         res.statusCode = 200;
         res.setHeader('content-type', 'application/json; charset=utf-8');
         res.end(JSON.stringify(result));

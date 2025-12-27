@@ -53,6 +53,68 @@
     .rowline > *{flex: 1}
     .rowline .tight{flex: 0 0 auto}
     .hide{display:none !important}
+
+    /* Collapsible sections */
+    .section-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .section-head h2{margin:0}
+    .section-toggle{
+      flex: 0 0 auto;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      line-height: 1;
+    }
+    .card.collapsed .section-body{display:none}
+    .card.collapsed .section-toggle{opacity:.9}
+
+    /* Action combobox (type-to-filter) */
+    .combo{position:relative}
+    .combo-field{position:relative}
+    .combo-field input{padding-right: 40px}
+    .combo-btn{
+      position:absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 22px;
+      height: 22px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--app-text);
+      cursor: pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:0;
+      line-height:1;
+      opacity: .95;
+    }
+    .combo-btn:hover{opacity: 1}
+    .combo-pop{
+      position:absolute;
+      left:0; right:0;
+      top: calc(100% + 8px);
+      z-index: 50;
+      border: 1px solid var(--app-border);
+      border-radius: 14px;
+      background: rgba(2,6,23,.92);
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+      padding: 10px 12px;
+    }
+    .combo-list{max-height: 260px; overflow:auto; margin-top:8px}
+    .combo-item{
+      padding: 8px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      user-select:none;
+    }
+    .combo-item:hover{background: rgba(148,163,184,.12)}
   </style>
 </head>
 <body>
@@ -67,171 +129,266 @@
           </div>
         </div>
         <div class="page-actions">
+          <button id="btnExpandAll" class="secondary" type="button">Expand all</button>
+          <button id="btnCollapseAll" class="secondary" type="button">Collapse all</button>
           <button id="btnClearAll" class="secondary" type="button">Clear</button>
         </div>
       </div>
     </div>
 
-    <div class="card">
-      <h2>1) Auth & Environment</h2>
-      <div class="muted">
-        Paste a bearer token (no client credentials). The tool will call <code>https://syncapp-{erp}.{env}.tipalti.com</code>.
+    <div class="card" data-section="auth">
+      <div class="section-head">
+        <h2>1) Auth & Environment</h2>
+        <button class="secondary section-toggle" type="button" data-toggle="auth">Collapse</button>
       </div>
-
-      <div class="grid" style="margin-top:10px">
-        <div>
-          <label for="environment">Environment</label>
-          <select id="environment">
-            <option value="sbox" selected>Sandbox (sbox)</option>
-            <option value="production">Production</option>
-          </select>
+      <div class="section-body">
+        <div class="muted">
+          Paste a bearer token (no client credentials). The tool will call <code>https://syncapp-{erp}.{env}.tipalti.com</code>.
         </div>
-        <div>
-          <label for="erp">ERP</label>
-          <select id="erp">
-            <option value="netsuite">NetSuite</option>
-            <option value="intacct">Intacct</option>
-            <option value="qbo">QBO</option>
-          </select>
-        </div>
-      </div>
 
-      <div class="row" style="margin-top:10px">
-        <div>
-          <label for="bearerToken">Bearer token</label>
-          <input id="bearerToken" type="password" placeholder="Paste token (not saved by default)" />
-          <div class="rowline small" style="margin-top:10px">
+        <div class="grid" style="margin-top:10px">
+          <div>
+            <label for="environment">Environment</label>
+            <select id="environment">
+              <option value="sbox" selected>Sandbox (sbox)</option>
+              <option value="production">Production</option>
+            </select>
+          </div>
+          <div>
+            <label for="erp">ERP</label>
+            <select id="erp">
+              <option value="netsuite">NetSuite</option>
+              <option value="intacct">Intacct</option>
+              <option value="qbo">QBO</option>
+              <option value="custom">Custom API</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label for="payerPublicId">payerPublicId</label>
+            <input id="payerPublicId" type="text" placeholder="e.g. 15662529128510426779030000" />
+            <div class="muted small" style="margin-top:6px">
+              Used automatically for endpoints that include <code>{payerPublicId}</code>. Runner mode can override per iteration.
+            </div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label for="bearerToken">Bearer token</label>
+            <input id="bearerToken" type="password" placeholder="Paste token (not saved by default)" />
+            <div class="rowline small" style="margin-top:10px">
+              <label class="tight" style="display:flex; align-items:center; gap:8px; margin:0; color: var(--app-text)">
+                <input id="rememberToken" type="checkbox" />
+                Remember token (local only)
+              </label>
+              <button id="btnClearToken" type="button" class="secondary tight">Clear token</button>
+              <span id="tokenStatus" class="pill tight">Token: <strong class="warn">missing</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid" style="margin-top:10px">
+          <div>
+            <label for="delayMs">Delay between requests (ms)</label>
+            <input id="delayMs" type="number" min="0" step="50" value="1500" />
+            <div class="muted small">Tip: keep ≥ 1500ms if you see rate limits.</div>
+          </div>
+          <div>
+            <label for="timeoutMs">Request timeout (ms)</label>
+            <input id="timeoutMs" type="number" min="1000" step="500" value="30000" />
+          </div>
+        </div>
+
+        <hr />
+
+        <h3>Proxy (required for GitHub Pages)</h3>
+        <div class="muted">
+          Some SyncApp hosts respond with <code>Cross-Origin-Resource-Policy: same-origin</code>, so browser <code>fetch</code> fails with <code>TypeError: Failed to fetch</code>.
+          A proxy makes requests server-side and returns the response with permissive CORS.
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div>
             <label class="tight" style="display:flex; align-items:center; gap:8px; margin:0; color: var(--app-text)">
-              <input id="rememberToken" type="checkbox" />
-              Remember token (local only)
+              <input id="useProxy" type="checkbox" />
+              Use proxy
             </label>
-            <button id="btnClearToken" type="button" class="secondary tight">Clear token</button>
-            <span id="tokenStatus" class="pill tight">Token: <strong class="warn">missing</strong></span>
           </div>
         </div>
-      </div>
 
-      <div class="grid" style="margin-top:10px">
-        <div>
-          <label for="delayMs">Delay between requests (ms)</label>
-          <input id="delayMs" type="number" min="0" step="50" value="1500" />
-          <div class="muted small">Tip: keep ≥ 1500ms if you see rate limits.</div>
-        </div>
-        <div>
-          <label for="timeoutMs">Request timeout (ms)</label>
-          <input id="timeoutMs" type="number" min="1000" step="500" value="30000" />
-        </div>
-      </div>
-
-      <hr />
-
-      <h3>Proxy (required for GitHub Pages)</h3>
-      <div class="muted">
-        Some SyncApp hosts respond with <code>Cross-Origin-Resource-Policy: same-origin</code>, so browser <code>fetch</code> fails with <code>TypeError: Failed to fetch</code>.
-        A proxy makes requests server-side and returns the response with permissive CORS.
-      </div>
-
-      <div class="row" style="margin-top:10px">
-        <div>
-          <label class="tight" style="display:flex; align-items:center; gap:8px; margin:0; color: var(--app-text)">
-            <input id="useProxy" type="checkbox" />
-            Use local proxy
-          </label>
-        </div>
-      </div>
-
-      <div class="row" style="margin-top:10px">
-        <div>
-          <label for="proxyBaseUrl">Proxy base URL</label>
-          <input id="proxyBaseUrl" type="text" placeholder="http://localhost:8787" value="http://localhost:8787" />
-          <div class="muted small">
-            If you’re using a shared/team proxy, paste its base URL here.
-            You can also auto-configure this tool via query params: <code>?useProxy=1&amp;proxyBaseUrl=...</code>
-            <br/>If this page is served over <strong>HTTPS</strong> (GitHub Pages), the proxy must also be <strong>HTTPS</strong> (or the browser will block it as mixed content).
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label for="proxyBaseUrl">Proxy base URL</label>
+            <input id="proxyBaseUrl" type="text" placeholder="http://localhost:8787" value="http://localhost:8787" />
+            <div class="muted small">
+              If you’re using a shared/team proxy, paste its base URL here.
+              You can also auto-configure this tool via query params: <code>?useProxy=1&amp;proxyBaseUrl=...</code>
+              <br/>If this page is served over <strong>HTTPS</strong> (GitHub Pages), the proxy must also be <strong>HTTPS</strong> (or the browser will block it as mixed content).
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="card">
-      <h2>2) Select API action</h2>
-      <div class="muted">
-        Choose an action from the registry and fill any placeholders. Runner mode can override these values per-iteration.
+    <div class="card" data-section="action">
+      <div class="section-head">
+        <h2>2) API request</h2>
+        <button class="secondary section-toggle" type="button" data-toggle="action">Collapse</button>
+      </div>
+      <div class="section-body">
+        <div class="muted" id="registryHelp">
+          Choose an action from the registry and fill any placeholders. Runner mode can override these values per-iteration.
+        </div>
+
+        <div id="customApiWrap" class="hide" style="margin-top:10px">
+          <div class="muted">
+            Custom API mode lets you run any request. Use <code>{placeholders}</code> in URL/headers/body and override them via runner CSV columns.
+            <span class="muted small"><br/>Note: if you enable the proxy, targets are restricted to <code>https://*.tipalti.com</code> for safety.</span>
+          </div>
+
+          <div class="grid" style="margin-top:10px">
+            <div>
+              <label for="customMethod">HTTP method</label>
+              <select id="customMethod">
+                <option value="GET" selected>GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="PATCH">PATCH</option>
+                <option value="DELETE">DELETE</option>
+              </select>
+            </div>
+            <div>
+              <label class="tight" style="display:flex; align-items:center; gap:8px; margin:24px 0 0; color: var(--app-text)">
+                <input id="customIncludeAuth" type="checkbox" checked />
+                Add Authorization: Bearer &lt;token&gt;
+              </label>
+            </div>
+          </div>
+
+          <details style="margin-top:10px">
+            <summary class="muted">Import from cURL</summary>
+            <div class="muted small" style="margin-top:10px">
+              Paste a <code>curl</code> command and click Import to populate method, URL, query params, headers, and body.
+            </div>
+            <label for="customCurl" class="muted small">cURL</label>
+            <textarea id="customCurl" class="mono mid" placeholder="curl -X GET 'https://syncapp-netsuite.sbox.tipalti.com/api/v1/credentials?payerPublicId=123' -H 'Authorization: Bearer ...'"></textarea>
+            <div class="actions">
+              <button id="btnImportCurl" type="button">Import cURL</button>
+              <button id="btnClearCurl" type="button" class="secondary">Clear</button>
+            </div>
+          </details>
+
+          <label for="customUrl">Full URL</label>
+          <input id="customUrl" type="text" placeholder="https://example.internal/api/v1/items?x=1" />
+
+          <div style="margin-top:10px">
+            <label>Query params (optional)</label>
+            <div class="muted small" style="margin-top:6px">
+              These are appended to the URL. Values support <code>{placeholders}</code>, and runner columns can override by using the same key name.
+            </div>
+            <div id="customQpWrap" class="codebox" style="margin-top:8px">
+              <div id="customQpRows"></div>
+              <div class="actions" style="margin-top:8px">
+                <button id="btnCustomAddQp" type="button" class="secondary">Add query param</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid" style="margin-top:10px">
+            <div>
+              <label for="customHeaders">Headers (JSON object or Key: Value per line)</label>
+              <textarea id="customHeaders" class="mono mid" placeholder="{&quot;accept&quot;:&quot;application/json&quot;}"></textarea>
+            </div>
+            <div>
+              <label for="customBody">Body (optional)</label>
+              <textarea id="customBody" class="mono mid" placeholder="{&quot;example&quot;:true}"></textarea>
+              <div class="muted small" style="margin-top:6px">
+                For GET requests, body will be ignored by most servers.
+              </div>
+            </div>
+          </div>
+        </div>
+
+      <div id="registryWrap">
+        <label style="margin-top:10px">Action</label>
+        <div id="actionCombo" class="combo" style="margin-top:8px">
+          <div class="combo-field">
+            <input id="actionComboInput" type="text" placeholder="Select an action…" autocomplete="off" />
+            <button id="actionComboBtn" type="button" class="combo-btn" aria-label="Open actions">▾</button>
+          </div>
+          <div id="actionComboPop" class="combo-pop hide">
+            <div id="actionComboList" class="combo-list"></div>
+          </div>
+        </div>
+        <!-- keep the select for internal compatibility -->
+        <select id="actionSelect" class="hide" aria-hidden="true" tabindex="-1"></select>
+
+        <div id="pathParamsCard" style="margin-top:10px">
+          <h3 style="margin-top:12px">Path parameters</h3>
+          <div id="pathParams" class="grid"></div>
+          <div class="muted small" style="margin-top:8px">
+            Runner mode can override these by providing columns named like the placeholders (e.g. <code>payerPublicId</code>, <code>id</code>, <code>recordType</code>).
+          </div>
+        </div>
+
+        <hr />
+
+        <div id="queryParamsWrap">
+          <h3>Query parameters (optional)</h3>
+          <div class="muted">
+            These will be appended as query params if present. Runner mode can override them per row.
+          </div>
+
+          <div class="kv3" style="margin-top:10px">
+            <div>
+              <label for="qpSearchId">searchId</label>
+              <input id="qpSearchId" type="text" placeholder="e.g. 12345" />
+            </div>
+            <div>
+              <label for="qpPageIndex">pageIndex</label>
+              <input id="qpPageIndex" type="number" step="1" placeholder="e.g. 0" />
+            </div>
+            <div>
+              <label for="qpPageSize">pageSize</label>
+              <input id="qpPageSize" type="number" step="1" placeholder="e.g. 200" />
+            </div>
+          </div>
+
+          <div class="kv" style="margin-top:10px">
+            <div>
+              <label for="qpFetchAll">fetchAll</label>
+              <select id="qpFetchAll">
+                <option value="" selected>(unset)</option>
+                <option value="true">true</option>
+                <option value="false">false</option>
+              </select>
+            </div>
+            <div>
+              <label for="qpWhere">where</label>
+              <input id="qpWhere" type="text" placeholder="e.g. status='ACTIVE' AND updatedAt&gt;='2025-01-01'" />
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="grid" style="margin-top:10px">
-        <div>
-          <label for="actionSearch">Search actions</label>
-          <input id="actionSearch" type="text" placeholder="Type to filter… (e.g. credentials, bills, vendors)" />
-        </div>
-        <div>
-          <label for="actionSelect">Action</label>
-          <select id="actionSelect"></select>
-        </div>
-      </div>
-
-      <div class="grid" style="margin-top:10px">
-        <div>
-          <label>Path template</label>
-          <div id="pathTemplate" class="codebox mono"></div>
-        </div>
-        <div>
-          <label>URL preview</label>
-          <div id="urlPreview" class="codebox mono"></div>
-        </div>
-      </div>
-
-      <div id="pathParamsCard" style="margin-top:10px">
-        <h3 style="margin-top:12px">Path parameters</h3>
-        <div id="pathParams" class="grid"></div>
-        <div class="muted small" style="margin-top:8px">
-          Runner mode can override these by providing columns named like the placeholders (e.g. <code>payerPublicId</code>, <code>id</code>, <code>recordType</code>).
-        </div>
-      </div>
-
-      <hr />
-
-      <h3>Query parameters (optional)</h3>
-      <div class="muted">
-        These will be appended as query params if present. Runner mode can override them per row.
-      </div>
-
-      <div class="kv3" style="margin-top:10px">
-        <div>
-          <label for="qpSearchId">searchId</label>
-          <input id="qpSearchId" type="text" placeholder="e.g. 12345" />
-        </div>
-        <div>
-          <label for="qpPageIndex">pageIndex</label>
-          <input id="qpPageIndex" type="number" step="1" placeholder="e.g. 0" />
-        </div>
-        <div>
-          <label for="qpPageSize">pageSize</label>
-          <input id="qpPageSize" type="number" step="1" placeholder="e.g. 200" />
-        </div>
-      </div>
-
-      <div class="kv" style="margin-top:10px">
-        <div>
-          <label for="qpFetchAll">fetchAll</label>
-          <select id="qpFetchAll">
-            <option value="" selected>(unset)</option>
-            <option value="true">true</option>
-            <option value="false">false</option>
-          </select>
-        </div>
-        <div>
-          <label for="qpWhere">where</label>
-          <input id="qpWhere" type="text" placeholder="e.g. status='ACTIVE' AND updatedAt&gt;='2025-01-01'" />
-        </div>
+      <hr style="margin-top:14px" />
+      <label style="margin-top:10px">URL preview</label>
+      <div id="urlPreview" class="codebox mono">(select an action or enter a Custom URL)</div>
       </div>
     </div>
 
-    <div class="card">
-      <h2>3) Runner (Postman-style)</h2>
-      <div class="muted">
-        Run the selected action multiple times by iterating variables from a CSV (columns = variables) or a pasted list (single variable).
+    <div class="card" data-section="runner">
+      <div class="section-head">
+        <h2>3) Runner (Postman-style)</h2>
+        <button class="secondary section-toggle" type="button" data-toggle="runner">Collapse</button>
       </div>
+      <div class="section-body">
+        <div class="muted">
+          Run the selected action multiple times by iterating variables from a CSV (columns = variables) or a pasted list (single variable).
+        </div>
 
       <div class="row" style="margin-top:10px">
         <label class="tight" style="display:flex; align-items:center; gap:8px; margin:0; color: var(--app-text)">
@@ -317,13 +474,18 @@
           </div>
         </details>
       </div>
+      </div>
     </div>
 
-    <div class="card">
-      <h2>4) Execute</h2>
-      <div class="muted">
-        Single-run executes one request. Runner mode executes multiple requests and aggregates all responses into one JSON.
+    <div class="card" data-section="execute">
+      <div class="section-head">
+        <h2>4) Execute</h2>
+        <button class="secondary section-toggle" type="button" data-toggle="execute">Collapse</button>
       </div>
+      <div class="section-body">
+        <div class="muted">
+          Single-run executes one request. Runner mode executes multiple requests and aggregates all responses into one JSON.
+        </div>
 
       <div class="actions">
         <button id="btnRunOnce" type="button">Run once</button>
@@ -344,13 +506,18 @@
         <summary class="muted">Logs</summary>
         <div id="logs" class="codebox mono" style="margin-top:10px; min-height: 120px"></div>
       </details>
+      </div>
     </div>
 
-    <div class="card">
-      <h2>5) Aggregated response</h2>
-      <div class="muted">
-        The aggregated output is always valid JSON. Use “Copy aggregated JSON” to paste into tickets/tools.
+    <div class="card" data-section="output">
+      <div class="section-head">
+        <h2>5) Aggregated response</h2>
+        <button class="secondary section-toggle" type="button" data-toggle="output">Collapse</button>
       </div>
+      <div class="section-body">
+        <div class="muted">
+          The aggregated output is always valid JSON. Use “Copy aggregated JSON” to paste into tickets/tools.
+        </div>
 
       <div class="row" style="margin-top:10px">
         <div>
@@ -372,6 +539,7 @@
 
       <label for="aggOut">Aggregated JSON</label>
       <textarea id="aggOut" class="mono big" placeholder="{ ... }"></textarea>
+      </div>
     </div>
 
     <footer class="muted" style="margin: 12px 0 0; text-align:center; font-size: 12px">
@@ -465,6 +633,64 @@
     const $ = (id) => document.getElementById(id);
     function nowIso() { return new Date().toISOString(); }
     function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    // ---------------- Custom API query params ------------------------------
+    // rows: [{ k: string, v: string }]
+    let customQpRows = [{ k: '', v: '' }];
+
+    function getCustomQpRows() {
+      return Array.isArray(customQpRows) ? customQpRows : [{ k: '', v: '' }];
+    }
+
+    function renderCustomQpRows() {
+      const wrap = $('customQpRows');
+      if (!wrap) return;
+      wrap.innerHTML = '';
+      const rows = getCustomQpRows();
+
+      rows.forEach((row, idx) => {
+        const line = document.createElement('div');
+        line.className = 'rowline';
+        line.style.marginTop = idx === 0 ? '0' : '6px';
+
+        const k = document.createElement('input');
+        k.type = 'text';
+        k.placeholder = 'key (e.g. pageSize)';
+        k.value = String(row.k ?? '');
+        k.addEventListener('input', () => {
+          customQpRows[idx].k = k.value;
+          updateUrlPreview();
+          saveState();
+        });
+
+        const v = document.createElement('input');
+        v.type = 'text';
+        v.placeholder = 'value (supports {placeholders})';
+        v.value = String(row.v ?? '');
+        v.addEventListener('input', () => {
+          customQpRows[idx].v = v.value;
+          updateUrlPreview();
+          saveState();
+        });
+
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'secondary tight';
+        del.textContent = 'Remove';
+        del.addEventListener('click', () => {
+          customQpRows.splice(idx, 1);
+          if (!customQpRows.length) customQpRows.push({ k: '', v: '' });
+          renderCustomQpRows();
+          updateUrlPreview();
+          saveState();
+        });
+
+        line.appendChild(k);
+        line.appendChild(v);
+        line.appendChild(del);
+        wrap.appendChild(line);
+      });
+    }
 
     function safeJsonStringify(obj) {
       try { return JSON.stringify(obj, null, 2); }
@@ -588,6 +814,9 @@
 
     function getSelectedAction() {
       const erp = $('erp').value;
+      if (erp === 'custom') {
+        return { erp: 'custom', key: 'custom', name: 'Custom API', method: $('customMethod').value, path: '' };
+      }
       const key = $('actionSelect').value;
       const action = MASTER_REGISTRY[erp]?.[key];
       if (!action) return null;
@@ -600,6 +829,233 @@
       let m;
       while ((m = re.exec(path)) !== null) out.push(m[1]);
       return [...new Set(out)];
+    }
+
+    function applyTemplate(str, vars) {
+      const s = String(str ?? '');
+      return s.replace(/\{(.*?)\}/g, (_, k) => {
+        const key = String(k ?? '').trim();
+        if (!key) return `{${k}}`;
+        if (!Object.prototype.hasOwnProperty.call(vars || {}, key)) return `{${k}}`;
+        const v = vars[key];
+        if (v === undefined || v === null) return '';
+        return String(v);
+      });
+    }
+
+    function parseHeadersInput(raw) {
+      const txt = String(raw ?? '').trim();
+      if (!txt) return {};
+      // JSON object
+      if (txt.startsWith('{')) {
+        try {
+          const obj = JSON.parse(txt);
+          if (obj && typeof obj === 'object' && !Array.isArray(obj)) return obj;
+        } catch {}
+      }
+      // Key: Value per line
+      const out = {};
+      for (const line of txt.split(/\r?\n/)) {
+        const t = line.trim();
+        if (!t) continue;
+        const idx = t.indexOf(':');
+        if (idx <= 0) continue;
+        const k = t.slice(0, idx).trim();
+        const v = t.slice(idx + 1).trim();
+        if (!k) continue;
+        out[k] = v;
+      }
+      return out;
+    }
+
+    function headersToText(headersObj) {
+      const obj = headersObj && typeof headersObj === 'object' ? headersObj : {};
+      const lines = [];
+      for (const [k, v] of Object.entries(obj)) {
+        if (v === undefined || v === null || String(v).trim() === '') continue;
+        lines.push(`${k}: ${String(v)}`);
+      }
+      return lines.join('\n');
+    }
+
+    function tokenizeCommandLine(str) {
+      // Very small tokenizer that handles quotes/backslashes enough for typical copied cURL.
+      const s = String(str || '').trim();
+      const out = [];
+      let cur = '';
+      let quote = null; // "'" | '"'
+      for (let i = 0; i < s.length; i++) {
+        const ch = s[i];
+        if (quote) {
+          if (ch === quote) { quote = null; continue; }
+          if (quote === '"' && ch === '\\' && i + 1 < s.length) {
+            // allow basic escapes inside double quotes
+            cur += s[i + 1];
+            i++;
+            continue;
+          }
+          cur += ch;
+          continue;
+        }
+        if (ch === '"' || ch === "'") { quote = ch; continue; }
+        if (ch === '\\' && i + 1 < s.length) {
+          // line continuation or escaped char
+          const next = s[i + 1];
+          if (next === '\n' || next === '\r') { i++; continue; }
+          cur += next;
+          i++;
+          continue;
+        }
+        if (/\s/.test(ch)) {
+          if (cur) { out.push(cur); cur = ''; }
+          continue;
+        }
+        cur += ch;
+      }
+      if (cur) out.push(cur);
+      return out;
+    }
+
+    function parseCurlCommand(raw) {
+      const tokens = tokenizeCommandLine(raw);
+      if (!tokens.length) return { ok: false, error: 'Empty cURL' };
+      if (!/^curl(\.exe)?$/i.test(tokens[0])) return { ok: false, error: 'Not a cURL command (must start with curl)' };
+
+      let method = '';
+      let url = '';
+      const headers = {};
+      const dataParts = [];
+
+      for (let i = 1; i < tokens.length; i++) {
+        const t = tokens[i];
+        const next = tokens[i + 1];
+
+        // URL forms
+        if (t === '--url' && next) { url = next; i++; continue; }
+
+        // method
+        if ((t === '-X' || t === '--request') && next) { method = next; i++; continue; }
+
+        // headers
+        if ((t === '-H' || t === '--header') && next) {
+          const line = String(next);
+          const idx = line.indexOf(':');
+          if (idx > 0) {
+            const k = line.slice(0, idx).trim();
+            const v = line.slice(idx + 1).trim();
+            if (k) headers[k] = v;
+          }
+          i++;
+          continue;
+        }
+
+        // data/body
+        if ((t === '-d' || t === '--data' || t === '--data-raw' || t === '--data-binary' || t === '--data-urlencode') && next !== undefined) {
+          dataParts.push(String(next));
+          i++;
+          continue;
+        }
+
+        // ignore common flags with args
+        if ((t === '-u' || t === '--user' || t === '--compressed' || t === '-k' || t === '--insecure' || t === '-s' || t === '--silent')) {
+          if ((t === '-u' || t === '--user') && next) i++;
+          continue;
+        }
+
+        // first bare token that looks like a URL
+        if (!t.startsWith('-') && !url && /^https?:\/\//i.test(t)) {
+          url = t;
+          continue;
+        }
+      }
+
+      const body = dataParts.length ? dataParts.join('&') : '';
+      if (!method) method = body ? 'POST' : 'GET';
+      if (!url) return { ok: false, error: 'No URL found in cURL' };
+      return { ok: true, method: method.toUpperCase(), url, headers, body };
+    }
+
+    function importCurlToCustomApi() {
+      const raw = $('customCurl').value || '';
+      const parsed = parseCurlCommand(raw);
+      if (!parsed.ok) { alert(`Import failed: ${parsed.error}`); return; }
+
+      // switch to custom mode (but don't change env)
+      $('erp').value = 'custom';
+      renderActionOptions();
+
+      $('customMethod').value = parsed.method || 'GET';
+
+      // Split URL query into builder rows
+      const u = safeParseUrl(parsed.url);
+      if (u) {
+        $('customUrl').value = `${u.origin}${u.pathname}`;
+        const rows = [];
+        for (const [k, v] of u.searchParams.entries()) rows.push({ k, v });
+        customQpRows = rows.length ? rows : [{ k: '', v: '' }];
+        renderCustomQpRows();
+      } else {
+        $('customUrl').value = parsed.url;
+        customQpRows = [{ k: '', v: '' }];
+        renderCustomQpRows();
+      }
+
+      // Authorization handling
+      const hdrsLower = {};
+      for (const [k, v] of Object.entries(parsed.headers || {})) hdrsLower[String(k).toLowerCase()] = v;
+      const auth = hdrsLower['authorization'];
+      if (auth && /^bearer\s+/i.test(auth)) {
+        const tok = auth.replace(/^bearer\s+/i, '').trim();
+        if (tok) $('bearerToken').value = tok;
+        $('customIncludeAuth').checked = true;
+        // remove auth header from custom headers to avoid duplicates
+        const headersNoAuth = { ...(parsed.headers || {}) };
+        for (const k of Object.keys(headersNoAuth)) {
+          if (String(k).toLowerCase() === 'authorization') delete headersNoAuth[k];
+        }
+        $('customHeaders').value = headersToText(headersNoAuth);
+      } else {
+        // keep whatever auth user provided in headers, and don't force includeAuth
+        $('customHeaders').value = headersToText(parsed.headers || {});
+      }
+
+      // Body
+      $('customBody').value = parsed.body || '';
+
+      // refresh UI
+      setTokenStatus();
+      renderSingleVarCandidates();
+      updateUrlPreview();
+      saveState();
+    }
+
+    function safeParseUrl(raw) {
+      try { return new URL(String(raw)); } catch { return null; }
+    }
+
+    function getCustomQpRows() {
+      // rows: [{k, v}]
+      try { return customQpRows || []; } catch { return []; }
+    }
+
+    function normalizeQpKey(k) {
+      return String(k ?? '').trim();
+    }
+
+    function buildCustomUrl({ baseUrl, vars, qpRows }) {
+      const urlStr = applyTemplate(String(baseUrl || '').trim(), vars || {});
+      const u = safeParseUrl(urlStr);
+      if (!u) return urlStr;
+      for (const row of (qpRows || [])) {
+        const key = normalizeQpKey(row.k);
+        if (!key) continue;
+        const override = (vars && Object.prototype.hasOwnProperty.call(vars, key)) ? vars[key] : undefined;
+        const rawVal = override !== undefined ? String(override) : String(row.v ?? '');
+        const val = applyTemplate(rawVal, vars || {});
+        if (val === '') u.searchParams.delete(key);
+        else u.searchParams.set(key, val);
+      }
+      return u.toString();
     }
 
     function getPathParamValue(name) {
@@ -639,6 +1095,7 @@
 
     function buildFinalUrl({ action, env, baseVars, runnerVars }) {
       const erp = action.erp;
+      if (erp === 'custom') return '';
       const host = buildBaseHost(erp, env);
 
       // Variables precedence: runnerVars > baseVars
@@ -674,8 +1131,17 @@
 
     function getBaseVarsFromUi(action) {
       const vars = {};
+      if (action.erp === 'custom') {
+        vars.payerPublicId = $('payerPublicId').value.trim();
+        vars.environment = $('environment').value;
+        vars.erp = $('erp').value;
+        return vars;
+      }
       const placeholders = extractPlaceholders(action.path);
-      for (const p of placeholders) vars[p] = getPathParamValue(p);
+      for (const p of placeholders) {
+        if (p === 'payerPublicId') vars[p] = $('payerPublicId').value.trim();
+        else vars[p] = getPathParamValue(p);
+      }
       return vars;
     }
 
@@ -695,6 +1161,7 @@
         environment: $('environment').value,
         erp: $('erp').value,
         action: $('actionSelect').value,
+        payerPublicId: $('payerPublicId').value,
         delayMs: $('delayMs').value,
         timeoutMs: $('timeoutMs').value,
         useProxy: $('useProxy').checked,
@@ -704,6 +1171,12 @@
         qpPageSize: $('qpPageSize').value,
         qpFetchAll: $('qpFetchAll').value,
         qpWhere: $('qpWhere').value,
+        customMethod: $('customMethod')?.value ?? 'GET',
+        customIncludeAuth: $('customIncludeAuth')?.checked ?? true,
+        customUrl: $('customUrl')?.value ?? '',
+        customQpRows: getCustomQpRows(),
+        customHeaders: $('customHeaders')?.value ?? '',
+        customBody: $('customBody')?.value ?? '',
         runnerEnabled: $('runnerEnabled').checked,
         runnerMode: $('runnerMode').value,
         singleVarName: $('singleVarName').value,
@@ -725,6 +1198,7 @@
         if (s.environment) $('environment').value = s.environment;
         if (s.erp) $('erp').value = s.erp;
         if (s.action) savedActionKey = s.action;
+        if (s.payerPublicId !== undefined) $('payerPublicId').value = s.payerPublicId;
         if (s.delayMs !== undefined) $('delayMs').value = s.delayMs;
         if (s.timeoutMs !== undefined) $('timeoutMs').value = s.timeoutMs;
         if (typeof s.useProxy === 'boolean') $('useProxy').checked = s.useProxy;
@@ -734,6 +1208,12 @@
         if (s.qpPageSize !== undefined) $('qpPageSize').value = s.qpPageSize;
         if (s.qpFetchAll !== undefined) $('qpFetchAll').value = s.qpFetchAll;
         if (s.qpWhere !== undefined) $('qpWhere').value = s.qpWhere;
+        if (s.customMethod && $('customMethod')) $('customMethod').value = s.customMethod;
+        if (typeof s.customIncludeAuth === 'boolean' && $('customIncludeAuth')) $('customIncludeAuth').checked = s.customIncludeAuth;
+        if (typeof s.customUrl === 'string' && $('customUrl')) $('customUrl').value = s.customUrl;
+        if (Array.isArray(s.customQpRows)) customQpRows = s.customQpRows.map(r => ({ k: String(r?.k ?? ''), v: String(r?.v ?? '') }));
+        if (typeof s.customHeaders === 'string' && $('customHeaders')) $('customHeaders').value = s.customHeaders;
+        if (typeof s.customBody === 'string' && $('customBody')) $('customBody').value = s.customBody;
         if (typeof s.runnerEnabled === 'boolean') $('runnerEnabled').checked = s.runnerEnabled;
         if (s.runnerMode) $('runnerMode').value = s.runnerMode;
         if (s.singleVarName) $('singleVarName').value = s.singleVarName;
@@ -777,8 +1257,22 @@
     // ---------------- UI: Registry rendering -------------------------------
     function renderActionOptions() {
       const erp = $('erp').value;
+      // Custom API mode: no registry
+      if (erp === 'custom') {
+        $('customApiWrap').classList.remove('hide');
+        $('registryWrap').classList.add('hide');
+        $('registryHelp').classList.add('hide');
+        $('pathParamsCard').classList.add('hide');
+        renderCustomQpRows();
+        renderSingleVarCandidates();
+        updateUrlPreview();
+        return;
+      } else {
+        $('customApiWrap').classList.add('hide');
+        $('registryWrap').classList.remove('hide');
+        $('registryHelp').classList.remove('hide');
+      }
       const reg = MASTER_REGISTRY[erp] || {};
-      const q = $('actionSearch').value.trim().toLowerCase();
       const keys = Object.keys(reg).sort((a,b) => Number(a) - Number(b));
 
       const sel = $('actionSelect');
@@ -786,8 +1280,6 @@
       sel.innerHTML = '';
       for (const k of keys) {
         const item = reg[k];
-        const hay = `${k} ${item.name} ${item.path}`.toLowerCase();
-        if (q && !hay.includes(q)) continue;
         const opt = document.createElement('option');
         opt.value = k;
         opt.textContent = `[${k}] ${item.name}`;
@@ -796,13 +1288,20 @@
       // restore selection if possible
       if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
       else if (sel.options.length) sel.value = sel.options[0].value;
+
+      // keep combobox display in sync
+      syncActionComboDisplay();
     }
 
     function renderPathParams() {
       const action = getSelectedAction();
       if (!action) return;
 
-      $('pathTemplate').textContent = action.path;
+      if (action.erp === 'custom') {
+        $('pathParamsCard').classList.add('hide');
+        updateUrlPreview();
+        return;
+      }
 
       const placeholders = extractPlaceholders(action.path);
       const wrap = $('pathParams');
@@ -815,6 +1314,7 @@
       }
 
       for (const p of placeholders) {
+        if (p === 'payerPublicId') continue; // moved to Auth & Environment section
         const div = document.createElement('div');
 
         const label = document.createElement('label');
@@ -822,24 +1322,103 @@
         label.setAttribute('for', `param_${p}`);
         div.appendChild(label);
 
-        // Special: recordType for NetSuite action 1 -> dropdown + datalist-like behavior
+        // Special: recordType for NetSuite action 1 -> searchable dropdown
         if (p === 'recordType' && action.erp === 'netsuite' && action.key === '1') {
-          const select = document.createElement('select');
-          select.id = `param_${p}`;
-          select.dataset.param = p;
-          // first option empty to force selection if desired
-          const empty = document.createElement('option');
-          empty.value = '';
-          empty.textContent = '(select recordType)';
-          select.appendChild(empty);
-          for (const r of NETSUITE_CLOSED_RECORDS) {
-            const opt = document.createElement('option');
-            opt.value = r;
-            opt.textContent = r;
-            select.appendChild(opt);
+          const combo = document.createElement('div');
+          combo.className = 'combo';
+
+          const field = document.createElement('div');
+          field.className = 'combo-field';
+
+          const input = document.createElement('input');
+          input.id = `param_${p}`;
+          input.dataset.param = p;
+          input.type = 'text';
+          input.placeholder = '(select recordType)';
+
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'combo-btn';
+          btn.setAttribute('aria-label', 'Open recordType');
+          btn.textContent = '▾';
+
+          const pop = document.createElement('div');
+          pop.className = 'combo-pop hide';
+
+          const list = document.createElement('div');
+          list.className = 'combo-list';
+          pop.appendChild(list);
+
+          field.appendChild(input);
+          field.appendChild(btn);
+          combo.appendChild(field);
+          combo.appendChild(pop);
+
+          let open = false;
+          let hasTyped = false;
+          const outsideHandler = (e) => {
+            if (!open) return;
+            if (combo.contains(e.target)) return;
+            close();
+          };
+
+          function render() {
+            list.innerHTML = '';
+            const q = hasTyped ? String(input.value || '').trim().toLowerCase() : '';
+            let shown = 0;
+            for (const r of NETSUITE_CLOSED_RECORDS) {
+              if (q && !String(r).toLowerCase().includes(q)) continue;
+              const row = document.createElement('div');
+              row.className = 'combo-item';
+              row.textContent = r;
+              row.addEventListener('click', () => {
+                input.value = r;
+                hasTyped = false;
+                updateUrlPreview();
+                saveState();
+                close();
+              });
+              list.appendChild(row);
+              shown++;
+              if (shown >= 120) break;
+            }
+            if (shown === 0) {
+              const empty = document.createElement('div');
+              empty.className = 'muted small';
+              empty.textContent = 'No matches';
+              list.appendChild(empty);
+            }
           }
-          select.addEventListener('change', () => { updateUrlPreview(); saveState(); });
-          div.appendChild(select);
+
+          function openPop() {
+            if (open) return;
+            open = true;
+            hasTyped = false;
+            pop.classList.remove('hide');
+            render();
+            document.addEventListener('click', outsideHandler);
+          }
+
+          function close() {
+            if (!open) return;
+            open = false;
+            pop.classList.add('hide');
+            document.removeEventListener('click', outsideHandler);
+          }
+
+          btn.addEventListener('click', () => (open ? close() : openPop()));
+          input.addEventListener('focus', openPop);
+          input.addEventListener('click', openPop);
+          input.addEventListener('input', () => {
+            hasTyped = true;
+            updateUrlPreview();
+            saveState();
+            if (!open) openPop();
+            else render();
+          });
+          pop.addEventListener('mousedown', (e) => e.preventDefault());
+
+          div.appendChild(combo);
           const hint = document.createElement('div');
           hint.className = 'muted small';
           hint.style.marginTop = '6px';
@@ -866,8 +1445,16 @@
     function renderSingleVarCandidates() {
       const action = getSelectedAction();
       const set = new Set();
-      if (action) extractPlaceholders(action.path).forEach(p => set.add(p));
+      if (action?.erp === 'custom') {
+        // derive candidates from templates
+        extractPlaceholders($('customUrl').value).forEach(p => set.add(p));
+        extractPlaceholders($('customHeaders').value).forEach(p => set.add(p));
+        extractPlaceholders($('customBody').value).forEach(p => set.add(p));
+      } else if (action) {
+        extractPlaceholders(action.path).forEach(p => set.add(p));
+      }
       ['searchId','pageIndex','pageSize','fetchAll','where'].forEach(p => set.add(p));
+      set.add('payerPublicId');
 
       const sel = $('singleVarName');
       const prev = sel.value;
@@ -886,8 +1473,15 @@
       if (!action) return;
       const env = $('environment').value;
       const baseVars = getBaseVarsFromUi(action);
-      const url = buildFinalUrl({ action, env, baseVars, runnerVars: null });
-      $('urlPreview').textContent = url;
+      if (action.erp === 'custom') {
+        const vars = { ...baseVars };
+        const u0 = $('customUrl').value.trim();
+        const url = u0 ? buildCustomUrl({ baseUrl: u0, vars, qpRows: getCustomQpRows() }) : '';
+        $('urlPreview').textContent = url || '(enter a Custom URL above)';
+      } else {
+        const url = buildFinalUrl({ action, env, baseVars, runnerVars: null });
+        $('urlPreview').textContent = url;
+      }
       saveState();
     }
 
@@ -1012,6 +1606,22 @@
       const map = normVarsMap(iterationVarsRaw || {});
       const out = {};
 
+      // Custom mode: allow any variables (for URL/headers/body templating)
+      if (action.erp === 'custom') {
+        for (const [k, v] of Object.entries(iterationVarsRaw || {})) {
+          const kk = String(k ?? '').trim();
+          if (!kk) continue;
+          if (v === undefined || v === null) continue;
+          out[kk] = String(v).trim();
+        }
+        // normalize common keys too
+        ['payerPublicId','searchId','pageIndex','pageSize','fetchAll','where','method','url'].forEach((k) => {
+          const v = map.get(normalizeKey(k));
+          if (v !== undefined) out[k] = String(v).trim();
+        });
+        return out;
+      }
+
       // Path placeholders
       extractPlaceholders(action.path).forEach((p) => {
         const v = map.get(normalizeKey(p));
@@ -1043,13 +1653,13 @@
       return base ? (base + '/proxy') : '';
     }
 
-    async function callViaProxy({ url, method, headers, timeoutMs }) {
+    async function callViaProxy({ url, method, headers, timeoutMs, body }) {
       const proxyUrl = getProxyUrl();
       if (!proxyUrl) throw new Error('Proxy is enabled but proxy base URL is empty.');
       const res = await fetchWithTimeout(proxyUrl, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ url, method, headers, timeoutMs }),
+        body: JSON.stringify({ url, method, headers, timeoutMs, body }),
       }, timeoutMs);
       if (!res.ok) {
         const t = await res.text();
@@ -1062,8 +1672,12 @@
       const action = getSelectedAction();
       if (!action) { alert('Missing action selection'); return; }
 
+      const isCustom = action.erp === 'custom';
+      if (isCustom && !$('customUrl').value.trim()) { alert('Missing Custom URL'); return; }
+
       const token = $('bearerToken').value.trim();
-      if (!token) { alert('Missing bearer token'); return; }
+      if (!isCustom && !token) { alert('Missing bearer token'); return; }
+      if (isCustom && $('customIncludeAuth').checked && !token) { alert('Missing bearer token (or uncheck "Add Authorization")'); return; }
 
       const env = $('environment').value;
       const delayMs = Math.max(0, Number($('delayMs').value || 0));
@@ -1091,7 +1705,7 @@
           actionKey: action.key,
           actionName: action.name,
           method: action.method,
-          pathTemplate: action.path,
+          pathTemplate: isCustom ? $('customUrl').value.trim() : action.path,
           delayMs,
           timeoutMs,
           runner: {
@@ -1119,16 +1733,41 @@
 
         const iter = iterations[i];
         const runnerVars = buildRunnerVars(action, iter.vars);
-        const url = buildFinalUrl({ action, env, baseVars, runnerVars });
-        if (url.includes('{') || url.includes('}')) {
-          stopRequested = true;
-          addLog(`  ↳ BLOCKED: missing placeholder values. URL still contains "{...}".`);
-          alert('Missing required path parameters (URL still contains "{...}"). Fill placeholders or provide them via runner CSV columns.');
-          break;
+        let url = '';
+        let method = (action.method || 'GET').toUpperCase();
+        let reqHeaders = null;
+        let reqBody = null;
+
+        if (isCustom) {
+          const vars = { ...baseVars, ...(runnerVars || {}) };
+          const urlTemplate = String(runnerVars.url ?? $('customUrl').value ?? '').trim();
+          url = buildCustomUrl({ baseUrl: urlTemplate, vars, qpRows: getCustomQpRows() });
+          method = String((runnerVars.method ?? $('customMethod').value) || 'GET').toUpperCase();
+
+          const headersTemplate = applyTemplate($('customHeaders').value || '', vars);
+          reqHeaders = parseHeadersInput(headersTemplate);
+          if ($('customIncludeAuth').checked) reqHeaders['authorization'] = `Bearer ${token}`;
+          if (!reqHeaders['accept'] && !reqHeaders['Accept']) reqHeaders['accept'] = 'application/json';
+
+          const bodyTemplate = applyTemplate($('customBody').value || '', vars);
+          if (bodyTemplate.trim() && !['GET','HEAD'].includes(method)) reqBody = bodyTemplate;
+        } else {
+          url = buildFinalUrl({ action, env, baseVars, runnerVars });
+          if (url.includes('{') || url.includes('}')) {
+            stopRequested = true;
+            addLog(`  ↳ BLOCKED: missing placeholder values. URL still contains "{...}".`);
+            alert('Missing required path parameters (URL still contains "{...}"). Fill placeholders or provide them via runner CSV columns.');
+            break;
+          }
+          method = (action.method || 'GET').toUpperCase();
+          reqHeaders = {
+            'accept': 'application/json',
+            'authorization': `Bearer ${token}`,
+          };
         }
 
         const startedAt = performance.now();
-        addLog(`(${i + 1}/${total}) ${action.method} ${url}`);
+        addLog(`(${i + 1}/${total}) ${method} ${url}`);
 
         let res = null;
         let bodyJson = null;
@@ -1138,15 +1777,8 @@
         let error = null;
 
         try {
-          // NOTE: Registry stores method, but initial CLI used GET everywhere. We honor registry method.
-          const method = (action.method || 'GET').toUpperCase();
-          const reqHeaders = {
-            'accept': 'application/json',
-            'authorization': `Bearer ${token}`,
-          };
-
           if (useProxy) {
-            const proxyResp = await callViaProxy({ url, method, headers: reqHeaders, timeoutMs });
+            const proxyResp = await callViaProxy({ url, method, headers: reqHeaders, timeoutMs, body: reqBody });
             status = Number(proxyResp.status || 0);
             ok = Boolean(proxyResp.ok);
             const ct = String((proxyResp.headers && (proxyResp.headers['content-type'] || proxyResp.headers['Content-Type'])) || '');
@@ -1157,7 +1789,9 @@
               try { bodyJson = JSON.parse(bodyText || ''); bodyText = null; } catch {}
             }
           } else {
-            res = await fetchWithTimeout(url, { method, headers: reqHeaders }, timeoutMs);
+            const fetchOpts = { method, headers: reqHeaders };
+            if (reqBody !== null && reqBody !== undefined) fetchOpts.body = reqBody;
+            res = await fetchWithTimeout(url, fetchOpts, timeoutMs);
             status = res.status;
             ok = res.ok;
 
@@ -1235,6 +1869,7 @@
     function clearAll() {
       if (isRunning) return;
       $('bearerToken').value = '';
+      $('payerPublicId').value = '';
       $('rememberToken').checked = false;
       $('delayMs').value = '1500';
       $('timeoutMs').value = '30000';
@@ -1245,6 +1880,13 @@
       $('qpPageSize').value = '';
       $('qpFetchAll').value = '';
       $('qpWhere').value = '';
+      if ($('customMethod')) $('customMethod').value = 'GET';
+      if ($('customIncludeAuth')) $('customIncludeAuth').checked = true;
+      if ($('customUrl')) $('customUrl').value = '';
+      customQpRows = [{ k: '', v: '' }];
+      renderCustomQpRows();
+      if ($('customHeaders')) $('customHeaders').value = '';
+      if ($('customBody')) $('customBody').value = '';
       $('runnerEnabled').checked = false;
       $('runnerMode').value = 'singleVar';
       $('runnerText').value = '';
@@ -1322,6 +1964,136 @@
     }
 
     // ---------------- Wire up events --------------------------------------
+    const SECTIONS_KEY = STORAGE_KEY + '_sections';
+    let actionComboOpen = false;
+    let actionComboPrevLabel = '';
+    let actionComboHasTyped = false;
+
+    function getSelectedActionLabel() {
+      const sel = $('actionSelect');
+      const opt = sel && sel.selectedOptions && sel.selectedOptions[0];
+      return opt ? String(opt.textContent || '') : '';
+    }
+
+    function syncActionComboDisplay() {
+      const inp = $('actionComboInput');
+      if (!inp) return;
+      if (actionComboOpen) return;
+      inp.value = getSelectedActionLabel();
+    }
+
+    function renderActionComboList() {
+      const list = $('actionComboList');
+      if (!list) return;
+      list.innerHTML = '';
+
+      const erp = $('erp').value;
+      const reg = MASTER_REGISTRY[erp] || {};
+      const q = actionComboHasTyped ? String($('actionComboInput')?.value || '').trim().toLowerCase() : '';
+      const keys = Object.keys(reg).sort((a,b) => Number(a) - Number(b));
+
+      let shown = 0;
+      for (const k of keys) {
+        const item = reg[k];
+        const label = `[${k}] ${item.name}`;
+        const hay = `${label} ${item.path}`.toLowerCase();
+        if (q && !hay.includes(q)) continue;
+
+        const row = document.createElement('div');
+        row.className = 'combo-item';
+        row.textContent = label;
+        row.addEventListener('click', () => {
+          $('actionSelect').value = k;
+          $('actionSelect').dispatchEvent(new Event('change'));
+          closeActionCombo();
+        });
+        list.appendChild(row);
+        shown++;
+        if (shown >= 80) break;
+      }
+
+      if (shown === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'muted small';
+        empty.textContent = 'No matches';
+        list.appendChild(empty);
+      }
+    }
+
+    function openActionCombo() {
+      const pop = $('actionComboPop');
+      if (!pop) return;
+      if (actionComboOpen) return;
+      actionComboPrevLabel = getSelectedActionLabel();
+      actionComboHasTyped = false;
+      actionComboOpen = true;
+      pop.classList.remove('hide');
+      const inp = $('actionComboInput');
+      if (inp) {
+        inp.focus();
+        inp.value = actionComboPrevLabel;
+        inp.select();
+      }
+      renderActionComboList();
+    }
+
+    function closeActionCombo() {
+      const pop = $('actionComboPop');
+      if (!pop) return;
+      if (!actionComboOpen) return;
+      actionComboOpen = false;
+      pop.classList.add('hide');
+      const inp = $('actionComboInput');
+      if (inp) inp.value = getSelectedActionLabel() || actionComboPrevLabel;
+    }
+
+    function setCardCollapsed(card, collapsed) {
+      if (!card) return;
+      card.classList.toggle('collapsed', Boolean(collapsed));
+      const btn = card.querySelector('.section-toggle');
+      if (btn) btn.textContent = card.classList.contains('collapsed') ? 'Expand' : 'Collapse';
+    }
+
+    function saveSectionState() {
+      try {
+        const collapsed = [...document.querySelectorAll('.card[data-section].collapsed')].map(c => c.dataset.section);
+        localStorage.setItem(SECTIONS_KEY, JSON.stringify(collapsed));
+      } catch {}
+    }
+
+    function loadSectionState() {
+      try {
+        const raw = localStorage.getItem(SECTIONS_KEY);
+        if (!raw) return;
+        const collapsed = new Set(JSON.parse(raw) || []);
+        document.querySelectorAll('.card[data-section]').forEach(card => {
+          setCardCollapsed(card, collapsed.has(card.dataset.section));
+        });
+      } catch {}
+    }
+
+    function expandAllSections() {
+      document.querySelectorAll('.card[data-section]').forEach(card => setCardCollapsed(card, false));
+      saveSectionState();
+    }
+
+    function collapseAllSections() {
+      document.querySelectorAll('.card[data-section]').forEach(card => setCardCollapsed(card, true));
+      saveSectionState();
+    }
+
+    $('btnExpandAll').addEventListener('click', expandAllSections);
+    $('btnCollapseAll').addEventListener('click', collapseAllSections);
+    document.querySelectorAll('.section-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sectionId = btn.dataset.toggle;
+        const card = document.querySelector(`.card[data-section="${CSS.escape(sectionId)}"]`);
+        if (!card) return;
+        setCardCollapsed(card, !card.classList.contains('collapsed'));
+        saveSectionState();
+      });
+    });
+
     $('btnClearAll').addEventListener('click', clearAll);
     $('btnClearToken').addEventListener('click', () => {
       $('bearerToken').value = '';
@@ -1329,6 +2101,7 @@
       saveState();
     });
     $('bearerToken').addEventListener('input', () => { setTokenStatus(); saveState(); });
+    $('payerPublicId').addEventListener('input', () => { updateUrlPreview(); renderSingleVarCandidates(); saveState(); });
     $('rememberToken').addEventListener('change', () => { saveState(); });
     $('useProxy').addEventListener('change', () => { saveState(); });
     $('proxyBaseUrl').addEventListener('input', () => { warnIfMixedContentProxy(); saveState(); });
@@ -1339,8 +2112,41 @@
       updateUrlPreview();
       saveState();
     });
-    $('actionSearch').addEventListener('input', () => { renderActionOptions(); renderPathParams(); updateUrlPreview(); saveState(); });
-    $('actionSelect').addEventListener('change', () => { renderPathParams(); updateUrlPreview(); saveState(); });
+
+    // Action: click to open dropdown; typing filters options (no extra section)
+    $('actionComboBtn').addEventListener('click', () => {
+      if (actionComboOpen) closeActionCombo();
+      else openActionCombo();
+    });
+    $('actionComboInput').addEventListener('focus', openActionCombo);
+    $('actionComboInput').addEventListener('click', openActionCombo);
+    $('actionComboInput').addEventListener('input', () => {
+      if (!actionComboOpen) openActionCombo();
+      actionComboHasTyped = true;
+      renderActionComboList();
+    });
+    $('actionComboPop').addEventListener('mousedown', (e) => { e.preventDefault(); });
+    document.addEventListener('click', (e) => {
+      if (!actionComboOpen) return;
+      const combo = $('actionCombo');
+      if (combo && combo.contains(e.target)) return;
+      closeActionCombo();
+    });
+    $('customMethod').addEventListener('change', () => { renderSingleVarCandidates(); updateUrlPreview(); saveState(); });
+    $('customIncludeAuth').addEventListener('change', () => { saveState(); });
+    $('customUrl').addEventListener('input', () => { renderSingleVarCandidates(); updateUrlPreview(); saveState(); });
+    $('customHeaders').addEventListener('input', () => { renderSingleVarCandidates(); saveState(); });
+    $('customBody').addEventListener('input', () => { renderSingleVarCandidates(); saveState(); });
+    $('btnImportCurl').addEventListener('click', importCurlToCustomApi);
+    $('btnClearCurl').addEventListener('click', () => { $('customCurl').value = ''; });
+    $('btnCustomAddQp').addEventListener('click', () => {
+      customQpRows.push({ k: '', v: '' });
+      renderCustomQpRows();
+      updateUrlPreview();
+      saveState();
+    });
+
+    $('actionSelect').addEventListener('change', () => { syncActionComboDisplay(); renderPathParams(); updateUrlPreview(); saveState(); });
     ['qpSearchId','qpPageIndex','qpPageSize','qpFetchAll','qpWhere','delayMs','timeoutMs'].forEach(id => {
       $(id).addEventListener('input', () => { updateUrlPreview(); updateRunnerCounts(); saveState(); });
       $(id).addEventListener('change', () => { updateUrlPreview(); updateRunnerCounts(); saveState(); });
@@ -1402,6 +2208,8 @@
       loadState();
       applyUrlConfig();
       warnIfMixedContentProxy();
+      loadSectionState();
+      renderCustomQpRows();
       // After loading state, rerender registry-dependent UI
       renderActionOptions();
       if (savedActionKey && [...$('actionSelect').options].some(o => o.value === savedActionKey)) {
@@ -1415,6 +2223,7 @@
       toggleRunnerUi();
       toggleSingleVarUi();
       setTokenStatus();
+      syncActionComboDisplay();
       updateUrlPreview();
       updateRunnerCounts();
       refreshAggregatedOutput();
