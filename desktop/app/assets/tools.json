@@ -61,20 +61,6 @@
       ]
     },
     {
-      "id": "syncapp-erp-api-runner",
-      "title": "SyncApp ERP API Runner",
-      "description": "Postman-style runner for SyncApp ERP APIs (NetSuite/Intacct/QBO/custom). Supports multi-variable CSV runs + aggregated JSON output.",
-      "path": "./tools/syncapp-erp-api-runner.html",
-      "icon": "\ud83e\uddea",
-      "tags": [
-        "SyncApp",
-        "ERP",
-        "API",
-        "Runner",
-        "CSV"
-      ]
-    },
-    {
       "id": "syncapp-erp-api-runner-desktop",
       "title": "SyncApp ERP API Runner (Desktop Download)",
       "description": "Download the Windows/macOS desktop app (recommended). Avoids browser CORS/CORP limitations so SyncApp calls 'just work'.",
