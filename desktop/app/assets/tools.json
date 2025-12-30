@@ -11,8 +11,7 @@
         "JSON",
         "Diff",
         "Logs",
-        "CSV",
-        "EngSupport"
+        "CSV"
       ]
     },
     {
@@ -21,7 +20,7 @@
       "description": "Makes the work with lists, strings, and SQL queries a bit more friendly",
       "path": "./tools/line-breaks-tool.html",
       "icon": "\ud83d\udd10",
-      "tags": ["LineBreak", "SQL", "EngSupport"]
+      "tags": ["LineBreak", "SQL"]
     },
     {
       "id": "csv-to-json",
@@ -32,8 +31,7 @@
       "tags": [
         "CSV",
         "JSON",
-        "Quick",
-        "EngSupport"
+        "Quick"
       ]
     },
     {
@@ -45,8 +43,7 @@
       "tags": [
         "SQL",
         "CSV",
-        "Template",
-        "EngSupport"
+        "Template"
       ]
     },
     {
@@ -61,6 +58,20 @@
         "CSV",
         "JSON",
         "API"
+      ]
+    },
+    {
+      "id": "syncapp-erp-api-runner",
+      "title": "SyncApp ERP API Runner",
+      "description": "Postman-style runner for SyncApp ERP APIs (NetSuite/Intacct/QBO/custom). Supports multi-variable CSV runs + aggregated JSON output.",
+      "path": "./tools/syncapp-erp-api-runner.html",
+      "icon": "\ud83e\uddea",
+      "tags": [
+        "SyncApp",
+        "ERP",
+        "API",
+        "Runner",
+        "CSV"
       ]
     },
     {
@@ -110,8 +121,7 @@
       "tags": [
         "HMAC",
         "Security",
-        "Hash",
-        "EngSupport"
+        "Hash"
       ]
     },
     {
@@ -120,7 +130,7 @@
       "description": "Split a CSV into multiple smaller CSV files (header included in every part).",
       "path": "./tools/CSV_Splitter.html",
       "icon": "\ud83d\udd10",
-      "tags": ["CSV", "EngSupport"]
+      "tags": ["CSV"]
     },
     {
       "id": "update-srs-generator",

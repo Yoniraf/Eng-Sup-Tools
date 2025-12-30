@@ -1,6 +1,9 @@
 (async function () {
   const toolsUrl = new URL('./assets/tools.json', location.href).toString();
   const UI_KEY = 'teamToolbox_ui_v1';
+  const APP_URL = new URL(location.href);
+  const DESKTOP_PROXY_BASE_URL = APP_URL.searchParams.get('proxyBaseUrl') || '';
+  const DESKTOP_USE_PROXY = APP_URL.searchParams.get('useProxy') || (DESKTOP_PROXY_BASE_URL ? '1' : '');
 
   const els = {
     app: document.querySelector('.app'),
@@ -36,6 +39,23 @@
   function resolveToolPath(path) {
     // Resolve relative to the current page.
     return new URL(path, location.href).toString();
+  }
+
+  function decorateToolUrl(tool, absoluteUrl) {
+    // Desktop app can pass a local proxy via query params on the toolbox URL.
+    // If present, auto-configure the SyncApp ERP API Runner tool iframe so it "just works".
+    if (!DESKTOP_PROXY_BASE_URL) return absoluteUrl;
+    const p = String(tool && tool.path ? tool.path : '');
+    const isRunner = (tool && tool.id === 'syncapp-erp-api-runner') || p.includes('syncapp-erp-api-runner.html');
+    if (!isRunner) return absoluteUrl;
+    try {
+      const u = new URL(absoluteUrl);
+      if (DESKTOP_USE_PROXY) u.searchParams.set('useProxy', DESKTOP_USE_PROXY);
+      u.searchParams.set('proxyBaseUrl', DESKTOP_PROXY_BASE_URL);
+      return u.toString();
+    } catch {
+      return absoluteUrl;
+    }
   }
 
   function iconFor(tool) {
@@ -119,7 +139,7 @@
   }
 
   function setViewer(tool) {
-    const absolute = resolveToolPath(tool.path);
+    const absolute = decorateToolUrl(tool, resolveToolPath(tool.path));
     els.openNewTab.href = absolute;
     els.openNewTab.setAttribute('aria-label', `Open ${tool.title} in new tab`);
     document.title = `${tool.title} — Team Toolbox`;

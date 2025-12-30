@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Team Toolbox</title>
+  <link rel="stylesheet" href="./assets/app.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <button id="toggle-sidebar" class="icon-btn" type="button" title="Show/Hide sidebar" aria-label="Toggle sidebar">☰</button>
+        <button id="toggle-topbar" class="icon-btn" type="button" title="Show/Hide top bar" aria-label="Toggle top bar">▴</button>
+        <div class="logo" aria-hidden="true"></div>
+        <div class="title">
+          <strong>Team Toolbox</strong>
+          <span>One link, many tools</span>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <div class="search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M21 21l-4.3-4.3m1.8-5.2a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <input id="search" type="search" placeholder="Search tools…" />
+        </div>
+        <span class="pill">build: <span id="build-pill">—</span></span>
+        <div class="tool-actions">
+          <a id="open-new-tab" class="btn" href="#" target="_blank" rel="noopener">↗ Open in new tab</a>
+          <button id="copy-link" class="btn" type="button">Copy link</button>
+        </div>
+
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="group-title" id="tool-group">Tools</div>
+        <ul id="tool-list" class="tool-list"></ul>
+        <div class="sidebar-footer">
+          <div class="group-title">Docs</div>
+          <a class="sidebar-link" href="./guide.html" target="_blank" rel="noopener">📖 Tool Guide</a>
+        </div>
+      </aside>
+
+      <section class="content">
+<div class="viewer">
+          <div id="loading" class="loading">Loading tool…</div>
+          <div id="frame-host" class="frame-host" aria-label="Tool viewer"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="./assets/app.js"></script>
+</body>
+</html>
