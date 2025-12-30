@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SyncApp ERP API Runner (Desktop)</title>
+  <link rel="stylesheet" href="../assets/tool.css" />
+  <style>
+    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      border:1px solid var(--app-border); border-radius:999px;
+      padding:6px 10px; background: rgba(2,6,23,.35);
+      font-size:12px; color: var(--app-muted);
+    }
+    .ok{color: rgba(34,197,94,.95)}
+    code{background: rgba(2,6,23,.35); border:1px solid var(--app-border); padding:2px 6px; border-radius: 8px}
+    .note{color: var(--app-muted); font-size: 12px; line-height: 1.45}
+    a.btnlink{
+      display:inline-flex; align-items:center; gap:8px;
+      text-decoration:none;
+      border-radius: 999px;
+      border: 1px solid var(--app-border);
+      background: rgba(2,6,23,.55);
+      color: var(--app-text);
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+    a.btnlink:hover{border-color: rgba(96,165,250,.35)}
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+      <div class="page-head">
+        <div>
+          <h1>SyncApp ERP API Runner (Desktop)</h1>
+          <div class="page-sub">
+            Download the desktop app to run SyncApp ERP APIs without browser CORS/CORP issues.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Why a desktop app?</h2>
+      <div class="note">
+        SyncApp ERP endpoints respond with headers like <code>Cross-Origin-Resource-Policy: same-origin</code>.
+        That makes browser requests from the Team Toolbox (GitHub Pages) fail with <code>TypeError: Failed to fetch</code>.
+        <br/><br/>
+        The desktop app starts a local proxy automatically and opens the same runner UI, so it behaves like the old <code>.exe</code>: <span class="ok"><strong>it just works</strong></span>.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Download</h2>
+      <div class="actions">
+        <a class="btnlink" href="https://github.com/yoniraf/Eng-Sup-Tools/releases/latest" target="_blank" rel="noopener">
+          ↗ Open latest release downloads
+        </a>
+      </div>
+      <div class="note" style="margin-top:10px">
+        Pick the right installer:
+        <ul>
+          <li><strong>Windows</strong>: <code>.exe</code> (NSIS installer) or <code>.zip</code></li>
+          <li><strong>macOS (Apple Silicon)</strong>: <code>-arm64.dmg</code> / <code>-arm64-mac.zip</code></li>
+          <li><strong>macOS (Intel)</strong>: <code>-x64.dmg</code> / <code>-x64-mac.zip</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>How to use</h2>
+      <div class="note">
+        After installing, open <strong>SyncApp ERP API Runner</strong>, paste your bearer token, choose ERP/action, and run.
+        The app aggregates all responses into one valid JSON with a copy button (same as the web UI).
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+

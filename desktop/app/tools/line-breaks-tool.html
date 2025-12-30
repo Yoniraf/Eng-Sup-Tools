@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Line Breaks</title>
+
+  <!-- Load Team Toolbox theme (adjust path if needed) -->
+  <link rel="stylesheet" href="../assets/app.css" />
+
+  <style>
+    /*
+      Why your theme didn't "apply":
+      - The tool runs in an iframe, so it does NOT inherit the parent page CSS.
+      - It must either (a) load app.css itself (via the link above) AND/OR (b) avoid hardcoded light colors.
+      This version does BOTH: it uses your --app-* tokens and has dark defaults.
+    */
+
+    /* Provide safe defaults if app.css isn't loaded for some reason */
+    :root{
+      --app-bg:#0b1220;
+      --app-surface:#0f172a;
+      --app-surface-2:#111c33;
+      --app-border:rgba(148,163,184,.18);
+      --app-text:#e5e7eb;
+      --app-muted:#94a3b8;
+      --app-accent:#60a5fa;
+      --app-accent-2:#22c55e;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --radius:14px;
+      --radius-sm:10px;
+      --font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; }
+    body{
+      margin:0;
+      font-family: var(--font);
+      color: var(--app-text);
+      background: transparent; /* important inside the viewer iframe */
+    }
+
+    .lb-wrap{ padding:14px; height:100%; }
+    .lb-card{
+      background: rgba(15,23,42,.55);
+      border: 1px solid var(--app-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      height: calc(100% - 0px);
+    }
+
+    .lb-title{
+      display:flex;
+      align-items:baseline;
+      justify-content:space-between;
+      gap:10px;
+      margin: 0 0 10px;
+    }
+    .lb-title h2{ margin:0; font-size:16px; letter-spacing:.2px; }
+    .lb-title .hint{ font-size:12px; color: var(--app-muted); }
+
+    .lb-grid{ display:grid; gap:12px; grid-template-columns: 1fr; min-height:0; }
+    @media (min-width: 980px){ .lb-grid{ grid-template-columns: 1fr 440px; } }
+
+    label{
+      display:block;
+      font-size:12px;
+      color: var(--app-muted);
+      margin-bottom:6px;
+    }
+
+    textarea, input[type="text"]{
+      width:100%;
+      border: 1px solid var(--app-border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      outline:none;
+      background: rgba(2,6,23,.55);
+      color: var(--app-text);
+      font-size: 13px;
+    }
+    textarea{
+      min-height: 220px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    textarea:focus, input[type="text"]:focus{
+      border-color: rgba(96,165,250,.45);
+      box-shadow: 0 0 0 4px rgba(96,165,250,.12);
+    }
+    textarea::placeholder, input::placeholder{ color: rgba(148,163,184,.8); }
+
+    .lb-sub{
+      margin-top:8px;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      font-size:12px;
+      color: var(--app-muted);
+    }
+
+    .lb-panel{
+      border:1px solid var(--app-border);
+      border-radius: var(--radius);
+      padding: 12px;
+      background: rgba(2,6,23,.25);
+      min-height:0;
+    }
+    .lb-panel h3{ margin:0 0 10px; font-size:13px; }
+
+    .lb-section{
+      margin: 10px 0 6px;
+      font-size: 11px;
+      color: var(--app-muted);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .lb-option{
+      display:flex;
+      gap:8px;
+      align-items:flex-start;
+      padding:7px 6px;
+      border-radius: 12px;
+    }
+    .lb-option:hover{ background: rgba(2,6,23,.25); }
+    .lb-option input{ margin-top:2px; }
+    .lb-option .txt{ font-size:13px; line-height:1.25; }
+
+    .lb-inline{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      width:100%;
+    }
+    .lb-inline input[type="text"]{ flex: 1 1 140px; max-width: 230px; }
+
+    .lb-actions{ display:flex; gap:10px; margin-top:12px; }
+    .lb-btn{
+      border:1px solid var(--app-border);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-weight: 800;
+      font-size: 12px;
+      cursor:pointer;
+      user-select:none;
+      background: rgba(2,6,23,.35);
+      color: var(--app-text);
+    }
+    .lb-btn:hover{ border-color: rgba(96,165,250,.45); box-shadow: 0 0 0 4px rgba(96,165,250,.10); }
+    .lb-btn.primary{
+      border-color: rgba(96,165,250,.45);
+      background: rgba(96,165,250,.18);
+    }
+
+    .lb-result{ display:grid; gap:12px; grid-template-columns: 1fr; align-items:stretch; min-height:0; }
+    @media (min-width: 980px){ .lb-result{ grid-template-columns: 1fr 170px; } }
+
+    .lb-copy{
+      border-radius: var(--radius);
+      border:1px solid rgba(96,165,250,.35);
+      background: rgba(96,165,250,.18);
+      color: var(--app-text);
+      font-weight: 900;
+      cursor:pointer;
+      min-height: 90px;
+    }
+    .lb-copy:hover{ border-color: rgba(96,165,250,.55); box-shadow: 0 0 0 4px rgba(96,165,250,.10); }
+
+    .lb-note{
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px dashed rgba(148,163,184,.22);
+      border-radius: var(--radius);
+      font-size: 12px;
+      color: var(--app-muted);
+      background: rgba(2,6,23,.25);
+    }
+
+    .lb-disabled{ opacity:.55; pointer-events:none; }
+
+    .lb-toast{
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      background: rgba(2,6,23,.85);
+      color: #fff;
+      padding: 10px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+      opacity: 0;
+      pointer-events:none;
+      transition: opacity .18s ease;
+    }
+    .lb-toast.show{ opacity: 1; }
+
+    code{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; }
+  </style>
+</head>
+
+<body>
+  <div class="lb-wrap">
+    <div class="lb-card">
+      <div class="lb-title">
+        <h2>Line Breaks</h2>
+        <div class="hint">Convert lists + format values for SQL</div>
+      </div>
+
+      <div class="lb-grid">
+        <div>
+          <label for="lb_input">Text to edit</label>
+          <textarea id="lb_input" spellcheck="false" placeholder="Paste values here (one per line / comma-separated / space-separated)…"></textarea>
+          <div class="lb-sub">
+            <div id="lb_stats_in">0 chars • 0 items</div>
+            <div>Tip: enable “Wrap each item” to add <code>'...'</code>.</div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <label for="lb_output">Result</label>
+          <div class="lb-result">
+            <textarea id="lb_output" spellcheck="false" readonly placeholder="Result will appear here…"></textarea>
+            <button class="lb-copy" id="lb_copy" type="button">Copy to clipboard</button>
+          </div>
+          <div class="lb-sub">
+            <div id="lb_stats_out">0 chars • 0 items</div>
+            <div id="lb_message"></div>
+          </div>
+        </div>
+
+        <div class="lb-panel">
+          <h3>Settings</h3>
+
+          <div class="lb-section">Delimiter conversion</div>
+          <div id="lb_modes">
+            <div class="lb-option">
+              <input type="radio" name="lb_mode" value="lb_to_comma" id="m_lb_to_comma" checked>
+              <div class="txt"><strong>Replace line breaks</strong> with comma</div>
+            </div>
+            <div class="lb-option">
+              <input type="radio" name="lb_mode" value="comma_to_lb" id="m_comma_to_lb">
+              <div class="txt"><strong>Replace commas</strong> with line breaks</div>
+            </div>
+            <div class="lb-option">
+              <input type="radio" name="lb_mode" value="lb_to_space" id="m_lb_to_space">
+              <div class="txt"><strong>Replace line breaks</strong> with blank space</div>
+            </div>
+            <div class="lb-option">
+              <input type="radio" name="lb_mode" value="comma_to_space" id="m_comma_to_space">
+              <div class="txt"><strong>Replace commas</strong> with blank space</div>
+            </div>
+            <div class="lb-option">
+              <input type="radio" name="lb_mode" value="lb_to_custom" id="m_lb_to_custom">
+              <div class="lb-inline">
+                <div class="txt"><strong>Replace line breaks</strong> with custom text:</div>
+                <input id="lb_custom_text" type="text" placeholder="e.g. | or , " />
+              </div>
+            </div>
+          </div>
+
+          <div class="lb-section">Per-item formatting</div>
+
+          <div class="lb-option">
+            <input type="checkbox" id="lb_trim" checked>
+            <div class="txt">Trim whitespace around items</div>
+          </div>
+
+          <div class="lb-option">
+            <input type="checkbox" id="lb_remove_dupes">
+            <div class="txt">Remove duplicate items</div>
+          </div>
+
+          <div class="lb-option">
+            <input type="checkbox" id="lb_wrap_each">
+            <div class="lb-inline">
+              <div class="txt">Wrap each item with</div>
+              <input id="lb_before" type="text" placeholder="before (e.g. ')" />
+              <div class="txt">and</div>
+              <input id="lb_after" type="text" placeholder="after (e.g. ')" />
+            </div>
+          </div>
+
+          <div class="lb-option">
+            <input type="checkbox" id="lb_one_per_line" checked>
+            <div class="txt">For comma output, put each item on a new line</div>
+          </div>
+
+          <div class="lb-option">
+            <input type="checkbox" id="lb_trailing_comma" checked>
+            <div class="txt">For comma output, add a trailing comma after the last item</div>
+          </div>
+
+          <div class="lb-section">SQL helper</div>
+          <div class="lb-option">
+            <input type="checkbox" id="lb_sql_in">
+            <div class="txt">Insert into <code>IN ( ... )</code> (auto single-quotes each value)</div>
+          </div>
+
+          <div class="lb-actions">
+            <button class="lb-btn primary" id="lb_execute" type="button">Execute</button>
+            <button class="lb-btn" id="lb_reset" type="button">Reset</button>
+          </div>
+
+          <div class="lb-note">
+            <strong>Item detection:</strong>
+            <div>• If input contains line breaks → per line</div>
+            <div>• Else if contains commas → per comma</div>
+            <div>• Else → whitespace</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="lb_toast" class="lb-toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (function(){
+      const $ = (id) => document.getElementById(id);
+
+      const inputEl  = $('lb_input');
+      const outputEl = $('lb_output');
+      const msgEl    = $('lb_message');
+      const statsIn  = $('lb_stats_in');
+      const statsOut = $('lb_stats_out');
+      const toastEl  = $('lb_toast');
+
+      function toast(text){
+        toastEl.textContent = text;
+        toastEl.classList.add('show');
+        clearTimeout(toastEl._t);
+        toastEl._t = setTimeout(() => toastEl.classList.remove('show'), 1400);
+      }
+
+      function normalizeNewlines(s){ return (s ?? '').replace(/\r\n?/g, '\n'); }
+      function getMode(){
+        const el = document.querySelector('input[name="lb_mode"]:checked');
+        return el ? el.value : 'lb_to_comma';
+      }
+      function splitByLines(text){ return normalizeNewlines(text).split('\n'); }
+      function splitByCommas(text){ return (text ?? '').split(','); }
+      function splitByWhitespace(text){ return (text ?? '').split(/\s+/); }
+
+      function detectItems(text){
+        const t = normalizeNewlines(text || '');
+        if (t.includes('\n')) return { items: splitByLines(t), kind: 'lines' };
+        if (t.includes(','))  return { items: splitByCommas(t), kind: 'commas' };
+        return { items: splitByWhitespace(t), kind: 'spaces' };
+      }
+
+      function parseItems(text, mode){
+        const t = normalizeNewlines(text || '');
+        let items, kind;
+        if (mode.startsWith('lb_to_')) { items = splitByLines(t); kind = 'lines'; }
+        else if (mode.startsWith('comma_to_')) { items = splitByCommas(t); kind = 'commas'; }
+        else ({ items, kind } = detectItems(t));
+        return { items, kind };
+      }
+
+      function trimIfNeeded(items){
+        if (!$('lb_trim').checked) return items.slice();
+        return items.map(s => (s ?? '').trim());
+      }
+      function removeEmpties(items){ return items.filter(s => (s ?? '').trim().length > 0); }
+      function removeDuplicates(items){
+        if (!$('lb_remove_dupes').checked) return items;
+        const seen = new Set();
+        const out = [];
+        for (const v of items){
+          if (seen.has(v)) continue;
+          seen.add(v);
+          out.push(v);
+        }
+        return out;
+      }
+
+      function applyWrap(items){
+        if (!$('lb_wrap_each').checked) return items;
+        const before = $('lb_before').value ?? '';
+        const after  = $('lb_after').value ?? '';
+        return items.map(v => `${before}${v}${after}`);
+      }
+
+      function sqlSingleQuote(value){
+        const v = (value ?? '').trim();
+        const escaped = v.replace(/'/g, "''");
+        return `'${escaped}'`;
+      }
+
+      function outputDelimiterForMode(mode){
+        if (mode === 'lb_to_comma') return ',';
+        if (mode === 'comma_to_lb') return '\n';
+        if (mode === 'lb_to_space' || mode === 'comma_to_space') return ' ';
+        if (mode === 'lb_to_custom') return ($('lb_custom_text').value ?? '');
+        return '\n';
+      }
+
+      function formatCommaJoin(items){
+        const onePerLine = $('lb_one_per_line').checked;
+        const delim = onePerLine ? ',\n' : ', ';
+        let out = items.join(delim);
+        if ($('lb_trailing_comma').checked && items.length) out += ',';
+        return out;
+      }
+
+      function execute(){
+        const mode = getMode();
+        const raw = inputEl.value || '';
+
+        const parsed = parseItems(raw, mode);
+        let items = trimIfNeeded(parsed.items);
+        items = removeEmpties(items);
+        items = removeDuplicates(items);
+
+        if ($('lb_sql_in').checked){
+          const quoted = items.map(sqlSingleQuote);
+          const onePerLine = $('lb_one_per_line').checked;
+          const inside = onePerLine ? quoted.join(',\n') : quoted.join(', ');
+          const inBody = onePerLine ? `\n${inside}\n` : inside;
+          outputEl.value = `IN (${inBody})`;
+          msgEl.textContent = `Processed ${items.length} item(s) (detected: ${parsed.kind}) → SQL IN.`;
+          updateStats();
+          return;
+        }
+
+        const wrapped = applyWrap(items);
+        const outDelim = outputDelimiterForMode(mode);
+
+        outputEl.value = (outDelim === ',')
+          ? formatCommaJoin(wrapped)
+          : wrapped.join(outDelim);
+
+        msgEl.textContent = `Processed ${items.length} item(s) (detected: ${parsed.kind}).`;
+        updateStats();
+      }
+
+      async function copyOut(){
+        const text = outputEl.value || '';
+        if (!text.trim()){ toast('Nothing to copy'); return; }
+        try{
+          await navigator.clipboard.writeText(text);
+          toast('Copied');
+        }catch(e){
+          outputEl.focus();
+          outputEl.select();
+          document.execCommand('copy');
+          window.getSelection()?.removeAllRanges?.();
+          toast('Copied');
+        }
+      }
+
+      function updateStats(){
+        const inText = inputEl.value || '';
+        const outText = outputEl.value || '';
+        const inItems = removeEmpties(trimIfNeeded(detectItems(inText).items));
+        const outItems = removeEmpties(trimIfNeeded(detectItems(outText).items));
+        statsIn.textContent  = `${inText.length} chars • ${inItems.length} items`;
+        statsOut.textContent = `${outText.length} chars • ${outItems.length} items`;
+      }
+
+      function setSqlDefaults(){
+        if ($('lb_sql_in').checked){
+          $('lb_modes').classList.add('lb-disabled');
+          $('lb_trailing_comma').checked = false;
+        } else {
+          $('lb_modes').classList.remove('lb-disabled');
+          $('lb_one_per_line').checked = true;
+          $('lb_trailing_comma').checked = true;
+        }
+      }
+
+      function reset(){
+        inputEl.value = '';
+        outputEl.value = '';
+        msgEl.textContent = '';
+
+        $('m_lb_to_comma').checked = true;
+        $('lb_custom_text').value = '';
+
+        $('lb_trim').checked = true;
+        $('lb_remove_dupes').checked = false;
+
+        $('lb_wrap_each').checked = false;
+        $('lb_before').value = '';
+        $('lb_after').value = '';
+
+        $('lb_one_per_line').checked = true;
+        $('lb_trailing_comma').checked = true;
+
+        $('lb_sql_in').checked = false;
+        setSqlDefaults();
+        updateStats();
+        toast('Reset');
+      }
+
+      $('lb_execute').addEventListener('click', execute);
+      $('lb_reset').addEventListener('click', reset);
+      $('lb_copy').addEventListener('click', copyOut);
+      $('lb_sql_in').addEventListener('change', setSqlDefaults);
+      inputEl.addEventListener('input', updateStats);
+
+      updateStats();
+      setSqlDefaults();
+    })();
+  </script>
+</body>
+</html>

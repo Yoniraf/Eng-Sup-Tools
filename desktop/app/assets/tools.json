@@ -1,0 +1,134 @@
+{
+  "build": "v1.1",
+  "tools": [
+    {
+      "id": "json-studio",
+      "title": "JSON Studio",
+      "description": "Side-by-side JSON editor with diff, CSV import/export, Coralogix log reconstructor, and value extractor.",
+      "path": "./tools/json-studio.html",
+      "icon": "\ud83e\udde9",
+      "tags": [
+        "JSON",
+        "Diff",
+        "Logs",
+        "CSV",
+        "EngSupport"
+      ]
+    },
+    {
+      "id": "String Tools • Line Breaks",
+      "title": "String Tools • Line Breaks",
+      "description": "Makes the work with lists, strings, and SQL queries a bit more friendly",
+      "path": "./tools/line-breaks-tool.html",
+      "icon": "\ud83d\udd10",
+      "tags": ["LineBreak", "SQL", "EngSupport"]
+    },
+    {
+      "id": "csv-to-json",
+      "title": "TSV/CSV \u2192 JSON Converter",
+      "description": "Quick converter for tab-delimited (TSV) or simple CSV-like text to JSON.",
+      "path": "./tools/csv-to-json.html",
+      "icon": "\ud83e\uddfe",
+      "tags": [
+        "CSV",
+        "JSON",
+        "Quick",
+        "EngSupport"
+      ]
+    },
+    {
+      "id": "Query-generator",
+      "title": "Query Generator",
+      "description": "Generate many Query statements from a CSV, replacing {placeholders} using column headers.",
+      "path": "./tools/sql-template-generator.html",
+      "icon": "\ud83e\udde0",
+      "tags": [
+        "SQL",
+        "CSV",
+        "Template",
+        "EngSupport"
+      ]
+    },
+    {
+      "id": "field-mapping-default-values",
+      "title": "Field Mapping Default Values Wizard",
+      "description": "Build FieldMappingDefaultValues payload from requestor CSV + pasted DB results, then optionally call the API.",
+      "path": "./tools/field-mapping-default-values-wizard.html",
+      "icon": "\ud83e\uddf0",
+      "tags": [
+        "Tipalti",
+        "Support",
+        "CSV",
+        "JSON",
+        "API"
+      ]
+    },
+    {
+      "id": "syncapp-erp-api-runner-desktop",
+      "title": "SyncApp ERP API Runner (Desktop Download)",
+      "description": "Download the Windows/macOS desktop app (recommended). Avoids browser CORS/CORP limitations so SyncApp calls 'just work'.",
+      "path": "./tools/syncapp-erp-api-runner-desktop.html",
+      "icon": "\ud83d\udce6",
+      "tags": [
+        "SyncApp",
+        "Desktop",
+        "Download",
+        "Windows",
+        "macOS"
+      ]
+    },
+    {
+      "id": "retrySepecificSyncEngine",
+      "title": "Retry Specific SyncEngine",
+      "description": "Batch-call SyncEngine scheduleRetrySync for a list of IDs (with batching, retries, progress, and logs).",
+      "path": "./tools/retrySepecificSyncEngine.html",
+      "icon": "\ud83d\udd10",
+      "tags": ["Retry Specific", "syncEngine"]
+    },
+    {
+      "id": "bulkRecordStateUpdateSyncEngine",
+      "title": "Bulk Update Record State",
+      "description": "Generate a MongoDB bulkWrite script to update syncengineservice_recordsyncstates (tipaltiId ↔ externalId).",
+      "path": "./tools/bulkRecordStateUpdateSyncEngine.html",
+      "icon": "\ud83d\udd10",
+      "tags": ["Bulk Update", "syncEngine"]
+    },
+    {
+      "id": "CaseWHenSQLQUey",
+      "title": "SQL CASE WHEN Generator",
+      "description": "Append ORDER BY CASE to preserve the same order as values in an IN(...) list.",
+      "path": "./tools/CaseWHenSQLQUey.html",
+      "icon": "\ud83d\udd10",
+      "tags": ["SQL", "Ordering", "CASE"]
+    },
+    {
+      "id": "api-key-generator",
+      "title": "API Key / Hash Generator",
+      "description": "Generate an HMAC-SHA256 hash from payerName + idap + timestamp + eat using a secret key.",
+      "path": "./tools/api-key-generator.html",
+      "icon": "\ud83d\udd10",
+      "tags": [
+        "HMAC",
+        "Security",
+        "Hash",
+        "EngSupport"
+      ]
+    },
+    {
+      "id": "CSV_Splitter",
+      "title": "CSV_Splitter",
+      "description": "Split a CSV into multiple smaller CSV files (header included in every part).",
+      "path": "./tools/CSV_Splitter.html",
+      "icon": "\ud83d\udd10",
+      "tags": ["CSV", "EngSupport"]
+    },
+    {
+      "id": "update-srs-generator",
+      "title": "Update SRS Generator",
+      "description": "Generate a JSON array payload for updateSRS=true for a list of IDs (one per line).",
+      "path": "./tools/update-srs-generator.html",
+      "icon": "\ud83d\udd10",
+      "tags": ["SyncEngine", "SRS", "JSON", "Batch"]
+    }
+  ]
+}
