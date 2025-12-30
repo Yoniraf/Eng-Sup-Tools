@@ -11,7 +11,8 @@
         "JSON",
         "Diff",
         "Logs",
-        "CSV"
+        "CSV",
+        "EngSupport"
       ]
     },
     {
@@ -20,7 +21,7 @@
       "description": "Makes the work with lists, strings, and SQL queries a bit more friendly",
       "path": "./tools/line-breaks-tool.html",
       "icon": "\ud83d\udd10",
-      "tags": ["LineBreak", "SQL"]
+      "tags": ["LineBreak", "SQL", "EngSupport"]
     },
     {
       "id": "csv-to-json",
@@ -31,7 +32,8 @@
       "tags": [
         "CSV",
         "JSON",
-        "Quick"
+        "Quick",
+        "EngSupport"
       ]
     },
     {
@@ -43,7 +45,8 @@
       "tags": [
         "SQL",
         "CSV",
-        "Template"
+        "Template",
+        "EngSupport"
       ]
     },
     {
@@ -107,7 +110,8 @@
       "tags": [
         "HMAC",
         "Security",
-        "Hash"
+        "Hash",
+        "EngSupport"
       ]
     },
     {
@@ -116,7 +120,7 @@
       "description": "Split a CSV into multiple smaller CSV files (header included in every part).",
       "path": "./tools/CSV_Splitter.html",
       "icon": "\ud83d\udd10",
-      "tags": ["CSV"]
+      "tags": ["CSV", "EngSupport"]
     },
     {
       "id": "update-srs-generator",
