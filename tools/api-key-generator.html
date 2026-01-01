@@ -41,7 +41,7 @@
       <div class="inline-actions">
         <input type="text" id="timestamp" placeholder="Enter timestamp" style="flex:1; min-width: 220px;">
         <button onclick="generateCurrentTimestamp()">Generate</button>
-        <button onclick="copyTimestamp()">Copy</button>
+        <button onclick="copyTimestamp(this)">Copy</button>
       </div>
 
       <div class="two" style="margin-top:10px">
@@ -57,7 +57,7 @@
 
       <div class="row" style="margin-top:12px">
         <button onclick="generateHash()">Generate hash</button>
-        <button onclick="copyHash()">Copy hash</button>
+        <button onclick="copyHash(this)">Copy hash</button>
         <button class="secondary" type="button" onclick="clearAll()">Clear</button>
       </div>
 
@@ -73,17 +73,62 @@
       document.getElementById('timestamp').value = String(nowSeconds);
     }
 
-    function copyTimestamp() {
+    async function copyToClipboard(text) {
+      // Prefer modern clipboard API; fall back to execCommand for older contexts.
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch (_) {
+        // fall back below
+      }
+
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.style.top = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function indicateCopied(buttonEl, label = 'Copied!') {
+      if (!buttonEl) return;
+      const original = buttonEl.dataset.originalLabel || buttonEl.textContent;
+      buttonEl.dataset.originalLabel = original;
+
+      if (buttonEl.__copiedTimeout) clearTimeout(buttonEl.__copiedTimeout);
+      buttonEl.textContent = label;
+      buttonEl.classList.add('copied');
+
+      buttonEl.__copiedTimeout = setTimeout(() => {
+        buttonEl.textContent = original;
+        buttonEl.classList.remove('copied');
+      }, 900);
+    }
+
+    async function copyTimestamp(buttonEl) {
       const timestampInput = document.getElementById('timestamp');
-      timestampInput.select();
-      document.execCommand('copy');
-      alert('Timestamp copied to clipboard!');
+      const ok = await copyToClipboard(timestampInput.value || '');
+      indicateCopied(buttonEl, ok ? 'Copied!' : 'Copy failed');
     }
 
     function generateHash() {
       const payerName = document.getElementById('payerName').value;
       const idap = document.getElementById('idap').value || '';
-      const timestamp = document.getElementById('timestamp').value;
+      const timestampEl = document.getElementById('timestamp');
+      // Always refresh timestamp on "Generate hash" (even if already populated).
+      generateCurrentTimestamp();
+      const timestamp = timestampEl.value;
       const eat = document.getElementById('eat').value || '';
       const key = document.getElementById('key').value;
 
@@ -98,11 +143,10 @@
       document.getElementById('output').value = hash;
     }
 
-    function copyHash() {
+    async function copyHash(buttonEl) {
       const output = document.getElementById('output');
-      output.select();
-      document.execCommand('copy');
-      alert('Hash copied to clipboard!');
+      const ok = await copyToClipboard(output.value || '');
+      indicateCopied(buttonEl, ok ? 'Copied!' : 'Copy failed');
     }
   
 
