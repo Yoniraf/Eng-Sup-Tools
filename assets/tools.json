@@ -68,14 +68,6 @@
       "tags": ["Bulk Update", "syncEngine"]
     },
     {
-      "id": "syncapp-erp-api-runner-desktop",
-      "title": "SyncApp ERP API Runner (Desktop Download)",
-      "description": "Download the Windows/macOS desktop app (recommended). Avoids browser CORS/CORP limitations so SyncApp calls 'just work'.",
-      "path": "./tools/syncapp-erp-api-runner-desktop.html",
-      "icon": "\ud83d\udce6",
-      "tags": [ "SyncApp", "Desktop", "Download", "Windows", "macOS" ]
-    },
-    {
       "id": "retrySepecificSyncEngine",
       "title": "Retry Specific SyncEngine",
       "description": "Batch-call SyncEngine scheduleRetrySync for a list of IDs (with batching, retries, progress, and logs).",
