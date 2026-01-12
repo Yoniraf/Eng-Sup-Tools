@@ -299,6 +299,50 @@
     const fileNameEl = document.getElementById('fileName');
     const resultDiv = document.getElementById('result');
 
+    // Splits CSV text into records while respecting quoted fields (including embedded newlines).
+    // This is necessary because CSV rows can legally contain "\n" inside quotes, and naive
+    // `text.split(/\r?\n/)` will produce incorrect row counts and broken output files.
+    function splitCSVRecords(text) {
+      const input = (text || '').replace(/^\uFEFF/, ''); // strip BOM if present
+      const records = [];
+      let record = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < input.length; ) {
+        const ch = input[i];
+
+        if (ch === '"') {
+          // Escaped quote inside a quoted field: "" -> "
+          if (inQuotes && input[i + 1] === '"') {
+            record += '""';
+            i += 2;
+            continue;
+          }
+          inQuotes = !inQuotes;
+          record += ch;
+          i += 1;
+          continue;
+        }
+
+        // Record boundary only when NOT inside quotes
+        if (!inQuotes && (ch === '\n' || ch === '\r')) {
+          // Consume \r\n as a single newline
+          if (ch === '\r' && input[i + 1] === '\n') i += 2;
+          else i += 1;
+          records.push(record);
+          record = '';
+          continue;
+        }
+
+        record += ch;
+        i += 1;
+      }
+
+      // Push final record (may be empty if file ended with a newline)
+      records.push(record);
+      return records;
+    }
+
     function formatBytes(bytes) {
       if (!Number.isFinite(bytes)) return '';
       const units = ['B','KB','MB','GB'];
@@ -409,7 +453,7 @@
 
       reader.onload = function (event) {
         const csvContent = event.target.result || '';
-        const csvRows = csvContent.split(/\r?\n/).filter(row => row.trim() !== '');
+        const csvRows = splitCSVRecords(csvContent).filter(row => row.trim() !== '');
 
         if (csvRows.length === 0) {
           alert('The CSV appears to be empty.');
