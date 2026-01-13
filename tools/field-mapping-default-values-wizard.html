@@ -400,7 +400,7 @@
     // --- Queries ------------------------------------------------------------
     function refreshQueries() {
       const instanceId = $('instanceId').value.trim() || '{instanceId}';
-    //  const fmId = $('fieldMappingId').value.trim() || '{FieldMappingId}';
+      const fmId = $('fieldMappingId').value.trim() || '{FieldMappingId}';
 
       $('queryPayerEntityMapping').value =
 `SELECT * FROM [TipaltiIntegration].[dbo].PayerEntityMapping WHERE instanceId = ${instanceId} ORDER BY id DESC`;
@@ -409,10 +409,7 @@
 `SELECT * FROM [TipaltiIntegration].[dbo].FieldsMapping WHERE instanceId = ${instanceId} AND recordType = 3 ORDER BY id DESC`;
 
       $('queryFieldsMappingDefaultValues').value =
-`SELECT fmdv.*, pem.tipaltiPayerEntityName 
-FROM [TipaltiIntegration].[dbo].FieldsMappingDefaultValues fmdv
-JOIN PayerEntityMapping pem ON fmdv.payerEntityMappingId = pem.id
-WHERE FieldMappingId ${fieldMappingId} ORDER BY id DESC`;
+`SELECT * FROM [TipaltiIntegration].[dbo].FieldsMappingDefaultValues WHERE FieldMappingId = ${fmId} ORDER BY id DESC`;
     }
 
     // --- Requestor parsing/validation --------------------------------------
