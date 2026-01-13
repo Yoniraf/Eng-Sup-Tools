@@ -409,7 +409,10 @@
 `SELECT * FROM [TipaltiIntegration].[dbo].FieldsMapping WHERE instanceId = ${instanceId} AND recordType = 3 ORDER BY id DESC`;
 
       $('queryFieldsMappingDefaultValues').value =
-`SELECT * FROM [TipaltiIntegration].[dbo].FieldsMappingDefaultValues WHERE FieldMappingId = ${fmId} ORDER BY id DESC`;
+`SELECT fmdv.*, pem.tipaltiPayerEntityName 
+FROM [TipaltiIntegration].[dbo].FieldsMappingDefaultValues fmdv
+JOIN [TipaltiIntegration].[dbo].PayerEntityMapping pem ON fmdv.payerEntityMappingId = pem.id
+WHERE FieldMappingId = ${fmId} ORDER BY id DESC`;
     }
 
     // --- Requestor parsing/validation --------------------------------------
