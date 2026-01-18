@@ -1,0 +1,93 @@
+/* SB-only dashboard theming.
+   Loaded ONLY by sb.html so production remains untouched. */
+
+:root[data-env="sb"]{
+  color-scheme: light dark;
+}
+
+/* Default SB = dark (matches production look) */
+:root[data-env="sb"] body{
+  background: linear-gradient(180deg, rgba(96,165,250,.08), transparent 30%), #0b1220;
+  color: #e5e7eb;
+}
+
+/* SB light theme */
+:root[data-env="sb"][data-theme="light"]{
+  color-scheme: light;
+}
+
+:root[data-env="sb"][data-theme="light"] body{
+  background:
+    radial-gradient(1200px 700px at 10% 0%, rgba(37,99,235,.10), transparent 55%),
+    radial-gradient(900px 600px at 90% 20%, rgba(22,163,74,.08), transparent 55%),
+    #f6f7fb;
+  color: #0f172a;
+}
+
+:root[data-env="sb"][data-theme="light"] .topbar{
+  background: rgba(255,255,255,.85);
+  border-bottom-color: rgba(15,23,42,.12);
+}
+
+:root[data-env="sb"][data-theme="light"] .sidebar{
+  background: rgba(255,255,255,.72);
+  border-right-color: rgba(15,23,42,.12);
+}
+
+:root[data-env="sb"][data-theme="light"] .brand .title span,
+:root[data-env="sb"][data-theme="light"] .group-title{
+  color: rgba(71,85,105,.9);
+}
+
+:root[data-env="sb"][data-theme="light"] .btn,
+:root[data-env="sb"][data-theme="light"] .icon-btn{
+  background: rgba(255,255,255,.80);
+  color: #0f172a;
+  border-color: rgba(15,23,42,.14);
+}
+
+:root[data-env="sb"][data-theme="light"] .btn:hover,
+:root[data-env="sb"][data-theme="light"] .icon-btn:hover{
+  border-color: rgba(37,99,235,.35);
+  box-shadow: 0 0 0 4px rgba(37,99,235,.10);
+}
+
+:root[data-env="sb"][data-theme="light"] .search input{
+  background: rgba(255,255,255,.92);
+  color: #0f172a;
+  border-color: rgba(15,23,42,.14);
+}
+
+:root[data-env="sb"][data-theme="light"] .tool-item a,
+:root[data-env="sb"][data-theme="light"] .sidebar-link{
+  background: rgba(255,255,255,.75);
+  border-color: rgba(15,23,42,.10);
+}
+
+:root[data-env="sb"][data-theme="light"] .tool-item a:hover,
+:root[data-env="sb"][data-theme="light"] .sidebar-link:hover{
+  background: rgba(241,245,249,.95);
+  border-color: rgba(37,99,235,.20);
+}
+
+:root[data-env="sb"][data-theme="light"] .tool-item.active a{
+  border-color: rgba(37,99,235,.35);
+  background: linear-gradient(180deg, rgba(37,99,235,.10), rgba(241,245,249,.95));
+}
+
+:root[data-env="sb"][data-theme="light"] .tag{
+  color: rgba(15,23,42,.72);
+  background: rgba(15,23,42,.04);
+  border-color: rgba(15,23,42,.08);
+}
+
+/* This is the "iframe stays dark" fix: viewer backdrop becomes light */
+:root[data-env="sb"][data-theme="light"] .viewer{
+  background: rgba(255,255,255,.60);
+}
+
+:root[data-env="sb"][data-theme="light"] .loading{
+  color: rgba(71,85,105,.95);
+  border-color: rgba(15,23,42,.16);
+}
+

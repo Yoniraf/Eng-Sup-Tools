@@ -1,0 +1,382 @@
+/* SB-only tool theming. Loaded ONLY by sb-tools/* pages. */
+
+:root[data-env="sb"]{
+  color-scheme: light dark;
+  --sb-bg: #0b1220;
+  --sb-surface: rgba(17,24,39,.88);
+  --sb-surface-2: rgba(30,41,59,.82);
+  --sb-border: rgba(148,163,184,.28);
+  --sb-text: #eef2f7;
+  --sb-muted: #b6c2d3;
+  --sb-accent: #7aa2ff;
+  --sb-accent-2: #34d399;
+  --sb-shadow: 0 12px 34px rgba(2,6,23,.45);
+  --sb-radius: 14px;
+  --sb-radius-sm: 10px;
+  --sb-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --sb-font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+
+  /* Also override common --app-* tokens used by many tools */
+  --app-bg: var(--sb-bg);
+  --app-surface: var(--sb-surface);
+  --app-surface-2: var(--sb-surface-2);
+  --app-border: var(--sb-border);
+  --app-text: var(--sb-text);
+  --app-muted: var(--sb-muted);
+  --app-accent: var(--sb-accent);
+  --app-accent-2: var(--sb-accent-2);
+  --shadow: var(--sb-shadow);
+  --radius: var(--sb-radius);
+  --radius-sm: var(--sb-radius-sm);
+  --font: var(--sb-font);
+  --mono: var(--sb-mono);
+
+  /* Some tools use alternate token names */
+  --bg: var(--sb-bg);
+  --panel: rgba(15,23,42,.78);
+  --text: var(--sb-text);
+  --muted: var(--sb-muted);
+  --border: var(--sb-border);
+  --accent: var(--sb-accent);
+  --accent-2: var(--sb-accent-2);
+}
+
+:root[data-env="sb"][data-theme="light"]{
+  color-scheme: light;
+  --sb-bg: #f4f6fb;
+  --sb-surface: #ffffff;
+  --sb-surface-2: #eef2f7;
+  --sb-border: rgba(15,23,42,.16);
+  --sb-text: #0b1220;
+  --sb-muted: #4b5b70;
+  --sb-accent: #1d4ed8;
+  --sb-accent-2: #15803d;
+  --sb-shadow: 0 10px 28px rgba(15,23,42,.10);
+
+  --app-bg: var(--sb-bg);
+  --app-surface: var(--sb-surface);
+  --app-surface-2: var(--sb-surface-2);
+  --app-border: var(--sb-border);
+  --app-text: var(--sb-text);
+  --app-muted: var(--sb-muted);
+  --app-accent: var(--sb-accent);
+  --app-accent-2: var(--sb-accent-2);
+  --shadow: var(--sb-shadow);
+
+  --bg: var(--sb-bg);
+  --panel: var(--sb-surface);
+  --text: var(--sb-text);
+  --muted: var(--sb-muted);
+  --border: var(--sb-border);
+  --accent: var(--sb-accent);
+  --accent-2: var(--sb-accent-2);
+}
+
+html, body{
+  background: var(--sb-bg) !important;
+  color: var(--sb-text) !important;
+  font-family: var(--sb-font) !important;
+}
+
+/* Code-ish surfaces */
+code, pre, kbd, samp{
+  font-family: var(--sb-mono) !important;
+}
+:root[data-env="sb"][data-theme="light"] code,
+:root[data-env="sb"][data-theme="light"] pre,
+:root[data-env="sb"][data-theme="light"] kbd,
+:root[data-env="sb"][data-theme="light"] samp{
+  background: rgba(241,245,249,.95) !important;
+  color: rgba(15,23,42,.90) !important;
+  border-color: rgba(15,23,42,.10) !important;
+}
+
+/* Common form controls (best-effort) */
+textarea, input, select{
+  background: var(--sb-surface-2) !important;
+  color: var(--sb-text) !important;
+  border-color: var(--sb-border) !important;
+}
+textarea::placeholder, input::placeholder{
+  color: rgba(226,232,240,.55) !important;
+}
+:root[data-env="sb"][data-theme="light"] textarea::placeholder,
+:root[data-env="sb"][data-theme="light"] input::placeholder{
+  color: rgba(71,85,105,.58) !important;
+}
+textarea:focus-visible, input:focus-visible, select:focus-visible,
+button:focus-visible, .btn:focus-visible{
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(96,165,250,.22) !important;
+  border-color: rgba(37,99,235,.55) !important;
+}
+
+/* Generic tool buttons (exclude JSONEditor toolbar buttons) */
+button:not(.jse-button):not(.jse-group-button), .btn{
+  background: var(--sb-surface-2) !important;
+  color: var(--sb-text) !important;
+  border-color: var(--sb-border) !important;
+}
+button:not(.jse-button):not(.jse-group-button):hover, .btn:hover{
+  background: rgba(96,165,250,.10) !important;
+  border-color: rgba(96,165,250,.45) !important;
+}
+button:not(.jse-button):not(.jse-group-button):active, .btn:active{
+  background: rgba(96,165,250,.18) !important;
+}
+
+/* Panels/cards commonly used across tools */
+.card, .panel, .lb-card, .shell, main{
+  background: var(--sb-surface) !important;
+  border-color: var(--sb-border) !important;
+  color: var(--sb-text) !important;
+  box-shadow: var(--sb-shadow) !important;
+}
+
+/* Generic pills/badges that some tools hardcode dark */
+.pill, .badge{
+  background: var(--sb-surface-2) !important;
+  border-color: var(--sb-border) !important;
+  color: var(--sb-text) !important;
+}
+:root[data-env="sb"][data-theme="light"] .pill,
+:root[data-env="sb"][data-theme="light"] .badge{
+  background: var(--sb-surface-2) !important;
+  border-color: var(--sb-border) !important;
+  color: var(--sb-text) !important;
+}
+
+/* Tables and code blocks */
+.table-wrap{
+  background: var(--sb-surface) !important;
+  border-color: var(--sb-border) !important;
+}
+th{
+  background: var(--sb-surface-2) !important;
+  color: var(--sb-text) !important;
+}
+td{
+  color: var(--sb-text) !important;
+}
+code, pre{
+  background: var(--sb-surface-2) !important;
+  color: var(--sb-text) !important;
+  border-color: var(--sb-border) !important;
+}
+
+/* JSON Studio: match production for mode buttons (inactive blends, active is white) */
+.jse-menu .jse-group-button{
+  background: transparent !important;
+  color: rgba(255,255,255,.96) !important;
+  border: 1px solid rgba(255,255,255,.38) !important;
+  box-shadow: none !important;
+  padding: 4px 10px !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+}
+.jse-menu .jse-group-button + .jse-group-button{
+  margin-left: -1px !important;
+  border-left-color: rgba(255,255,255,.22) !important;
+}
+.jse-menu .jse-group-button.jse-first{
+  border-top-left-radius: 10px !important;
+  border-bottom-left-radius: 10px !important;
+}
+.jse-menu .jse-group-button.jse-last{
+  border-top-right-radius: 10px !important;
+  border-bottom-right-radius: 10px !important;
+}
+.jse-menu .jse-group-button:hover{
+  background: rgba(255,255,255,.12) !important;
+}
+.jse-menu .jse-group-button.jse-selected{
+  background: rgba(255,255,255,.96) !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  border-color: rgba(255,255,255,.96) !important;
+}
+
+/* JSON Studio: other blue-bar buttons should blend into the bar */
+.jse-menu{
+  background: #3b82f6 !important;
+  color: rgba(255,255,255,.95) !important;
+}
+.jse-menu .jse-button,
+.jse-menu button{
+  /* Force transparent inactive background (light + dark) */
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+.jse-menu .jse-button::before,
+.jse-menu .jse-button::after{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* Some JSONEditor builds style an inner <span> with a pill background */
+.jse-menu .jse-button > span{
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Explicitly enforce transparent for group buttons when NOT selected */
+.jse-menu .jse-group-button:not(.jse-selected){
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+.jse-menu .jse-button:not(.jse-group-button){
+  border: 0 !important;
+  color: rgba(255,255,255,.95) !important;
+}
+.jse-menu .jse-button:not(.jse-group-button):hover{
+  background: rgba(255,255,255,.12) !important;
+}
+
+/* Active mode button stays white (production behavior) */
+.jse-menu .jse-group-button.jse-selected{
+  background: rgba(255,255,255,.96) !important;
+  background-color: rgba(255,255,255,.96) !important;
+  color: #0f172a !important;
+  border-color: rgba(255,255,255,.96) !important;
+}
+.jse-menu .jse-button:not(.jse-group-button):disabled,
+.jse-menu .jse-button:not(.jse-group-button)[disabled]{
+  opacity: .55 !important;
+  background: transparent !important;
+}
+
+/* JSON Studio: eliminate remaining dark chrome in light mode */
+:root[data-env="sb"][data-theme="light"] .toolbar{
+  background: rgba(255,255,255,.85) !important;
+  border-bottom-color: rgba(15,23,42,.12) !important;
+}
+:root[data-env="sb"][data-theme="light"] .toolbar label{
+  color: rgba(71,85,105,.95) !important;
+}
+:root[data-env="sb"][data-theme="light"] .toolbar select{
+  background: rgba(255,255,255,.92) !important;
+  color: rgba(15,23,42,.92) !important;
+  border-color: rgba(15,23,42,.14) !important;
+}
+:root[data-env="sb"][data-theme="light"] .toolbar button.icon-btn{
+  background: rgba(255,255,255,.86) !important;
+  color: rgba(15,23,42,.92) !important;
+  border-color: rgba(15,23,42,.14) !important;
+}
+
+:root[data-env="sb"][data-theme="light"] .editor-title{
+  background: rgba(241,245,249,.95) !important;
+  color: rgba(71,85,105,.95) !important;
+  border-bottom-color: rgba(15,23,42,.12) !important;
+}
+
+:root[data-env="sb"][data-theme="light"] .center-controls{
+  background: rgba(241,245,249,.95) !important;
+  border-left-color: rgba(15,23,42,.12) !important;
+  border-right-color: rgba(15,23,42,.12) !important;
+}
+
+:root[data-env="sb"][data-theme="light"] .diff-panel{
+  background: rgba(255,255,255,.88) !important;
+  border-top-color: rgba(15,23,42,.12) !important;
+  color: rgba(15,23,42,.92) !important;
+}
+:root[data-env="sb"][data-theme="light"] .diff-panel pre{
+  background: rgba(241,245,249,.95) !important;
+  border-color: rgba(15,23,42,.10) !important;
+  color: rgba(15,23,42,.88) !important;
+}
+
+/* JSON Studio: Log Reconstructor + Key-Value Extractor panels */
+:root[data-env="sb"][data-theme="light"] .log-tool-container{
+  background: rgba(255,255,255,.92) !important;
+  border-top-color: rgba(15,23,42,.12) !important;
+}
+:root[data-env="sb"][data-theme="light"] .log-card{
+  background: rgba(255,255,255,.92) !important;
+  border-color: rgba(15,23,42,.12) !important;
+  box-shadow: 0 10px 30px rgba(15,23,42,.08) !important;
+}
+:root[data-env="sb"][data-theme="light"] .log-dropzone{
+  background: rgba(241,245,249,.95) !important;
+  border-color: rgba(15,23,42,.16) !important;
+}
+:root[data-env="sb"][data-theme="light"] .log-dropzone-hint,
+:root[data-env="sb"][data-theme="light"] .log-tool-inner label,
+:root[data-env="sb"][data-theme="light"] .log-tool-inner h1,
+:root[data-env="sb"][data-theme="light"] .log-tool-inner h2,
+:root[data-env="sb"][data-theme="light"] .log-tool-inner ul,
+:root[data-env="sb"][data-theme="light"] .log-status{
+  color: rgba(15,23,42,.84) !important;
+}
+:root[data-env="sb"][data-theme="light"] .log-tool-inner code{
+  background: rgba(241,245,249,.95) !important;
+  color: rgba(15,23,42,.90) !important;
+  border-color: rgba(15,23,42,.10) !important;
+}
+:root[data-env="sb"][data-theme="light"] .log-output,
+:root[data-env="sb"][data-theme="light"] .kv-output{
+  background: rgba(255,255,255,.92) !important;
+  color: rgba(15,23,42,.92) !important;
+  border-color: rgba(15,23,42,.12) !important;
+}
+:root[data-env="sb"][data-theme="light"] .kv-keys{
+  background: rgba(241,245,249,.95) !important;
+  border-color: rgba(15,23,42,.12) !important;
+}
+:root[data-env="sb"][data-theme="light"] .kv-keys label{
+  color: rgba(15,23,42,.86) !important;
+}
+:root[data-env="sb"][data-theme="light"] .kv-status{
+  color: rgba(71,85,105,.92) !important;
+}
+
+/* CSV Splitter: light-mode specific fixes for hardcoded dark chips */
+:root[data-env="sb"][data-theme="light"] #fileMeta.filemeta{
+  background: rgba(241,245,249,.95) !important;
+  border-color: rgba(15,23,42,.10) !important;
+  color: rgba(15,23,42,.88) !important;
+}
+:root[data-env="sb"][data-theme="light"] #fileBadge.badge{
+  background: rgba(37,99,235,.10) !important;
+  border-color: rgba(37,99,235,.22) !important;
+  color: rgba(15,23,42,.80) !important;
+}
+:root[data-env="sb"][data-theme="light"] #dropZone.dropzone{
+  background: linear-gradient(180deg, rgba(37,99,235,.06), rgba(22,163,74,.03)) !important;
+  border-color: rgba(15,23,42,.16) !important;
+}
+:root[data-env="sb"][data-theme="light"] #dropZone .dz-sub{
+  color: rgba(71,85,105,.95) !important;
+}
+
+/* Retry tool (Tailwind CDN) - it hardcodes dark inputs/logs with !important. */
+:root[data-env="sb"][data-theme="light"] body.bg-gray-50{
+  background: var(--sb-bg) !important;
+}
+:root[data-env="sb"][data-theme="light"] body.bg-gray-50 input,
+:root[data-env="sb"][data-theme="light"] body.bg-gray-50 textarea,
+:root[data-env="sb"][data-theme="light"] body.bg-gray-50 select{
+  background: rgba(255,255,255,.92) !important;
+  color: rgba(15,23,42,.92) !important;
+  border-color: rgba(15,23,42,.12) !important;
+}
+:root[data-env="sb"][data-theme="light"] body.bg-gray-50 input::placeholder,
+:root[data-env="sb"][data-theme="light"] body.bg-gray-50 textarea::placeholder{
+  color: rgba(71,85,105,.65) !important;
+}
+/* The log panel uses a dark utility class */
+:root[data-env="sb"][data-theme="light"] body.bg-gray-50 .bg-gray-900{
+  background: rgba(241,245,249,.95) !important;
+  border: 1px solid rgba(15,23,42,.10) !important;
+  color: rgba(15,23,42,.88) !important;
+}
+:root[data-env="sb"][data-theme="light"] body.bg-gray-50 .text-gray-100{
+  color: rgba(15,23,42,.88) !important;
+}
+

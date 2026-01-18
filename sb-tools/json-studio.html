@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <title>JSON Studio</title>
+  <script src="../assets/sb-theme-init.js"></script>
 
   <!-- JSON editor dark theme CSS -->
   <link
@@ -18,14 +19,6 @@
       --app-border: rgba(148,163,184,.18);
       --app-text: #e5e7eb;
       --app-muted: #94a3b8;
-    }
-    :root[data-theme="light"] {
-      --app-bg: #f4f6fb;
-      --app-accent: #1d4ed8;
-      --app-accent-soft: #93c5fd;
-      --app-border: rgba(15,23,42,.16);
-      --app-text: #0b1220;
-      --app-muted: #4b5b70;
     }
 
     * {
@@ -107,16 +100,6 @@
       border-color: transparent;
       font-weight: 600;
     }
-    :root[data-theme="light"] .tab {
-      border-color: rgba(15,23,42,.18);
-      background: rgba(255,255,255,.85);
-      color: var(--app-text);
-    }
-    :root[data-theme="light"] .tab.active {
-      background: #0f172a;
-      color: #f8fafc;
-      border-color: transparent;
-    }
 
     .tab .label {
       overflow: hidden;
@@ -146,11 +129,6 @@
       justify-content: center;
       cursor: pointer;
       flex-shrink: 0;
-    }
-    :root[data-theme="light"] .tab-add {
-      border-color: rgba(15,23,42,.22);
-      background: rgba(255,255,255,.75);
-      color: var(--app-text);
     }
 
     .tab-add:hover {
@@ -538,8 +516,7 @@
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
   </style>
-  <script src="../assets/theme-init.js"></script>
-  <link rel="stylesheet" href="../assets/tools-theme.css" />
+  <link rel="stylesheet" href="../assets/sb-tools.css" />
 </head>
 
 <body>

@@ -1,6 +1,7 @@
 (async function () {
   const toolsUrl = new URL('./assets/tools.json', location.href).toString();
   const UI_KEY = 'teamToolbox_ui_v1';
+  const THEME_KEY = 'teamToolbox_theme_v1';
   const APP_URL = new URL(location.href);
   const DESKTOP_PROXY_BASE_URL = APP_URL.searchParams.get('proxyBaseUrl') || '';
   const DESKTOP_USE_PROXY = APP_URL.searchParams.get('useProxy') || (DESKTOP_PROXY_BASE_URL ? '1' : '');
@@ -10,16 +11,19 @@
     list: document.getElementById('tool-list'),
     group: document.getElementById('tool-group'),
     frameHost: document.getElementById('frame-host'),
-    loading: document.getElementById('loading'),    openNewTab: document.getElementById('open-new-tab'),
+    loading: document.getElementById('loading'),
+    openNewTab: document.getElementById('open-new-tab'),
     copyLink: document.getElementById('copy-link'),
     search: document.getElementById('search'),
     build: document.getElementById('build-pill'),
     toggleSidebar: document.getElementById('toggle-sidebar'),
     toggleTopbar: document.getElementById('toggle-topbar'),
+    toggleTheme: document.getElementById('toggle-theme'),
   };
 
   let tools = [];
   let activeId = null;
+  let currentTheme = 'dark';
 
   // Cache iframes per tool so switching tools keeps their state.
   const framesById = new Map();
@@ -52,10 +56,26 @@
       const u = new URL(absoluteUrl);
       if (DESKTOP_USE_PROXY) u.searchParams.set('useProxy', DESKTOP_USE_PROXY);
       u.searchParams.set('proxyBaseUrl', DESKTOP_PROXY_BASE_URL);
+      u.searchParams.set('theme', currentTheme);
       return u.toString();
     } catch {
       return absoluteUrl;
     }
+  }
+
+  function decorateThemeParam(absoluteUrl) {
+    try {
+      const u = new URL(absoluteUrl);
+      u.searchParams.set('theme', currentTheme);
+      return u.toString();
+    } catch {
+      return absoluteUrl;
+    }
+  }
+
+  function buildToolUrl(tool) {
+    const baseUrl = decorateToolUrl(tool, resolveToolPath(tool.path));
+    return decorateThemeParam(baseUrl);
   }
 
   function iconFor(tool) {
@@ -88,7 +108,7 @@
       li.dataset.id = tool.id;
 
       const a = document.createElement('a');
-      a.href = resolveToolPath(tool.path);
+      a.href = buildToolUrl(tool);
       a.target = '_blank';
       a.rel = 'noopener';
       a.title = tool.title;
@@ -139,7 +159,7 @@
   }
 
   function setViewer(tool) {
-    const absolute = decorateToolUrl(tool, resolveToolPath(tool.path));
+    const absolute = buildToolUrl(tool);
     els.openNewTab.href = absolute;
     els.openNewTab.setAttribute('aria-label', `Open ${tool.title} in new tab`);
     document.title = `${tool.title} — Team Toolbox`;
@@ -157,6 +177,10 @@
         if (activeId === tool.id) {
           els.loading.style.display = 'none';
         }
+        try {
+          frame.contentWindow?.postMessage({ type: 'tool-theme', theme: currentTheme }, '*');
+          frame.contentDocument.documentElement.dataset.theme = currentTheme;
+        } catch { /* ignore */ }
       });
 
       framesById.set(tool.id, frame);
@@ -231,6 +255,68 @@
   if (els.toggleSidebar) els.toggleSidebar.addEventListener('click', toggleSidebar);
   if (els.toggleTopbar) els.toggleTopbar.addEventListener('click', toggleTopbar);
 
+  // --- Theme ---------------------------------------------------------------
+  function isValidTheme(t) {
+    return t === 'dark' || t === 'light';
+  }
+
+  function getInitialTheme() {
+    const fromQuery = String(APP_URL.searchParams.get('theme') || '').toLowerCase();
+    if (isValidTheme(fromQuery)) return fromQuery;
+    try {
+      const raw = localStorage.getItem(THEME_KEY);
+      const v = String(raw || '').toLowerCase();
+      return isValidTheme(v) ? v : 'dark';
+    } catch {
+      return 'dark';
+    }
+  }
+
+  function saveTheme(theme) {
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch { /* ignore */ }
+  }
+
+  function setQueryTheme(theme) {
+    try {
+      const u = new URL(location.href);
+      u.searchParams.set('theme', theme);
+      history.replaceState({}, '', u.toString());
+    } catch { /* ignore */ }
+  }
+
+  function updateThemeToggleLabel(theme) {
+    if (!els.toggleTheme) return;
+    els.toggleTheme.textContent = `Theme: ${theme === 'light' ? 'Light' : 'Dark'}`;
+    els.toggleTheme.setAttribute('aria-pressed', theme === 'light' ? 'true' : 'false');
+  }
+
+  function broadcastThemeToFrames() {
+    framesById.forEach((frame) => {
+      try {
+        frame.contentWindow?.postMessage({ type: 'tool-theme', theme: currentTheme }, '*');
+        frame.contentDocument.documentElement.dataset.theme = currentTheme;
+      } catch { /* ignore */ }
+    });
+  }
+
+  function applyTheme(theme) {
+    currentTheme = isValidTheme(theme) ? theme : 'dark';
+    document.documentElement.dataset.theme = currentTheme;
+    setQueryTheme(currentTheme);
+    updateThemeToggleLabel(currentTheme);
+    broadcastThemeToFrames();
+  }
+
+  function toggleTheme() {
+    const next = currentTheme === 'light' ? 'dark' : 'light';
+    saveTheme(next);
+    applyTheme(next);
+  }
+
+  if (els.toggleTheme) els.toggleTheme.addEventListener('click', toggleTheme);
+
   // --- Search filtering ----------------------------------------------------
   function filterTools(q) {
     const query = (q || '').trim().toLowerCase();
@@ -293,6 +379,7 @@
 
   // Init
   try {
+    applyTheme(getInitialTheme());
     await loadTools();
   } catch (err) {
     console.error(err);

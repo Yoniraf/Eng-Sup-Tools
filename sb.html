@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Team Toolbox</title>
+  <title>Team Toolbox (SB)</title>
   <link rel="stylesheet" href="./assets/app.css" />
+  <link rel="stylesheet" href="./assets/sb.css" />
 </head>
 <body>
   <div class="app">
@@ -15,7 +16,7 @@
         <div class="logo" aria-hidden="true"></div>
         <div class="title">
           <strong>Team Toolbox</strong>
-          <span>One link, many tools</span>
+          <span>Sandbox environment</span>
         </div>
       </div>
 
@@ -26,8 +27,9 @@
           </svg>
           <input id="search" type="search" placeholder="Search tools…" />
         </div>
+        <span id="env-pill-wrap" class="pill">env: <span id="env-pill">sb</span></span>
         <span class="pill">build: <span id="build-pill">—</span></span>
-        <button id="toggle-theme" class="btn" type="button" aria-label="Toggle theme">Theme: Dark</button>
+        <button id="toggle-theme" class="btn" type="button" aria-label="Toggle theme">Theme: Light</button>
         <div class="tool-actions">
           <a id="open-new-tab" class="btn" href="#" target="_blank" rel="noopener">↗ Open in new tab</a>
           <button id="copy-link" class="btn" type="button">Copy link</button>
@@ -47,7 +49,7 @@
       </aside>
 
       <section class="content">
-<div class="viewer">
+        <div class="viewer">
           <div id="loading" class="loading">Loading tool…</div>
           <div id="frame-host" class="frame-host" aria-label="Tool viewer"></div>
         </div>
@@ -55,6 +57,7 @@
     </div>
   </div>
 
-  <script src="./assets/app.js"></script>
+  <script src="./assets/app-sb.js"></script>
 </body>
 </html>
+

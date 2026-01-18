@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Field Mapping Default Values Wizard</title>
   <link rel="stylesheet" href="../assets/tool.css" />
-  <link rel="stylesheet" href="../assets/tools-theme.css" />
+  <script src="../assets/sb-theme-init.js"></script>
   <style>
     .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
     .grid{display:grid; grid-template-columns: 1fr 1fr; gap: 12px}
@@ -15,7 +15,7 @@
     .pill{
       display:inline-flex; align-items:center; gap:6px;
       border:1px solid var(--app-border); border-radius:999px;
-      padding:6px 10px; background: var(--app-surface-2);
+      padding:6px 10px; background: rgba(2,6,23,.35);
       font-size:12px; color: var(--app-muted);
     }
     .ok{color: rgba(34,197,94,.95)}
@@ -26,14 +26,19 @@
     button.copied{border-color: rgba(34,197,94,.65)}
     .hint{margin-top:8px}
     details summary{cursor:pointer}
-    .table-wrap{overflow:auto; border:1px solid var(--app-border); border-radius: 12px; background: var(--app-surface)}
+    .table-wrap{overflow:auto; border:1px solid var(--app-border); border-radius: 12px; background: rgba(2,6,23,.35)}
     table{border-collapse:collapse; width:100%; font-size:12px}
     th, td{padding:8px 10px; border-bottom:1px solid rgba(148,163,184,.14); vertical-align:top}
-    th{color: var(--app-muted); font-weight:600; text-align:left; position:sticky; top:0; background: var(--app-surface-2)}
+    th{color: var(--app-muted); font-weight:600; text-align:left; position:sticky; top:0; background: rgba(15,23,42,.9)}
     td{color: var(--app-text)}
-    code{background: var(--app-surface-2); border:1px solid var(--app-border); padding:2px 6px; border-radius: 8px}
+    code{background: rgba(2,6,23,.35); border:1px solid var(--app-border); padding:2px 6px; border-radius: 8px}
+    /* SB light: avoid inline-code clipping on narrow widths */
+    .card{ overflow: visible; }
+    .muted{ overflow-wrap: anywhere; line-height: 1.5; padding-right: 4px; }
+    /* Chips in long sentences: add a little breathing room so borders aren't visually clipped */
+    .muted code{ display:inline-block; margin: 0 2px; }
   </style>
-  <script src="../assets/theme-init.js"></script>
+  <link rel="stylesheet" href="../assets/sb-tools.css" />
 </head>
 <body>
   <div class="page">
