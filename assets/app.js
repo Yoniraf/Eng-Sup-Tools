@@ -179,7 +179,8 @@
         }
         try {
           frame.contentWindow?.postMessage({ type: 'tool-theme', theme: currentTheme }, '*');
-          frame.contentDocument.documentElement.dataset.theme = currentTheme;
+          const docEl = frame.contentDocument?.documentElement;
+          if (docEl?.dataset) docEl.dataset.theme = currentTheme;
         } catch { /* ignore */ }
       });
 
@@ -296,7 +297,8 @@
     framesById.forEach((frame) => {
       try {
         frame.contentWindow?.postMessage({ type: 'tool-theme', theme: currentTheme }, '*');
-        frame.contentDocument.documentElement.dataset.theme = currentTheme;
+        const docEl = frame.contentDocument?.documentElement;
+        if (docEl?.dataset) docEl.dataset.theme = currentTheme;
       } catch { /* ignore */ }
     });
   }
