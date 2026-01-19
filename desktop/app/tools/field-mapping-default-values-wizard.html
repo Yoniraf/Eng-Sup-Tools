@@ -25,6 +25,7 @@
     button.copied{border-color: rgba(34,197,94,.65)}
     .hint{margin-top:8px}
     details summary{cursor:pointer}
+    .hidden{display:none}
     .table-wrap{overflow:auto; border:1px solid var(--app-border); border-radius: 12px; background: rgba(2,6,23,.35)}
     table{border-collapse:collapse; width:100%; font-size:12px}
     th, td{padding:8px 10px; border-bottom:1px solid rgba(148,163,184,.14); vertical-align:top}
@@ -73,11 +74,23 @@
     </div>
 
     <div class="card">
-      <h2>2) Input: requestor CSV</h2>
+      <h2>2) Input: requestor CSV or JSON</h2>
       <div class="muted">
-        The requestor does <strong>not</strong> need access to this tool — they only need to send back a CSV that matches the template.
-        Required columns: <code>defaultValueType</code>, <code>value ID</code>, <code>value name</code>, <code>applyToPayment</code>, <code>isReadOnly</code>, <code>Entity name</code>.
+        The requestor does <strong>not</strong> need access to this tool — they only need to send back a CSV or JSON.
+        CSV required columns: <code>defaultValueType</code>, <code>value ID</code>, <code>value name</code>, <code>applyToPayment</code>, <code>isReadOnly</code>, <code>Entity name</code>.
+        JSON required fields: <code>defaultValueType</code>, <code>externalId</code>, <code>externalName</code>, <code>applyToPayment</code>, <code>isReadOnly</code>, <code>payerEntityMappingId</code>.
         Booleans can be true/false, 1/0, yes/no.
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label for="requestorFormat">Input format</label>
+          <select id="requestorFormat">
+            <option value="csv" selected>CSV</option>
+            <option value="json">JSON</option>
+          </select>
+          <div class="muted hint">For JSON, <code>payerEntityMappingId</code> can be an entity name or numeric ID.</div>
+        </div>
       </div>
 
       <div class="row" style="margin-top:10px">
@@ -100,15 +113,22 @@
         </div>
       </div>
 
-      <div class="row" style="margin-top:10px">
+      <div class="row" id="requestorCsvFileRow" style="margin-top:10px">
         <div>
           <label for="requestorCsvFile">Upload CSV (optional)</label>
           <input id="requestorCsvFile" type="file" />
         </div>
       </div>
 
-      <label for="requestorCsv">Requestor CSV</label>
-      <textarea id="requestorCsv" class="mono big" placeholder="defaultValueType,value ID,value name,applyToPayment,isReadOnly,Entity name&#10;1,1,DA-Algonquin,true,true,Algonquin"></textarea>
+      <div id="requestorCsvBlock">
+        <label for="requestorCsv">Requestor CSV</label>
+        <textarea id="requestorCsv" class="mono big" placeholder="defaultValueType,value ID,value name,applyToPayment,isReadOnly,Entity name&#10;1,1,DA-Algonquin,true,true,Algonquin"></textarea>
+      </div>
+
+      <div id="requestorJsonBlock" class="hidden">
+        <label for="requestorJson">Requestor JSON</label>
+        <textarea id="requestorJson" class="mono big" placeholder='[{"defaultValueType":1,"externalId":"2","externalName":"Singapore","applyToPayment":true,"isReadOnly":true,"payerEntityMappingId":"Singapore"}]'></textarea>
+      </div>
 
       <div class="statbar">
         <span class="pill">Rows: <strong id="reqCount">0</strong></span>
@@ -413,12 +433,33 @@
     }
 
     // --- Requestor parsing/validation --------------------------------------
+    const REQUESTOR_FORMATS = { CSV: 'csv', JSON: 'json' };
+
+    function getRequestorFormat() {
+      return $('requestorFormat')?.value || REQUESTOR_FORMATS.CSV;
+    }
+
+    function setRequestorFormat(format) {
+      const isCsv = format === REQUESTOR_FORMATS.CSV;
+      if ($('requestorCsvBlock')) $('requestorCsvBlock').classList.toggle('hidden', !isCsv);
+      if ($('requestorJsonBlock')) $('requestorJsonBlock').classList.toggle('hidden', isCsv);
+      if ($('requestorCsvFileRow')) $('requestorCsvFileRow').classList.toggle('hidden', !isCsv);
+      if ($('requestorCsvFile')) $('requestorCsvFile').disabled = !isCsv;
+      if ($('btnDownloadTemplate')) $('btnDownloadTemplate').disabled = !isCsv;
+    }
+
     // Requestor template headers (spaces/case tolerated via normHeader):
     // defaultValueType, value ID, value name, applyToPayment, isReadOnly, Entity name
     const REQUIRED_REQ_COLS = ['defaultValueType','value ID','value name','applyToPayment','isReadOnly','Entity name'];
 
-    function validateRequestor() {
-      const issues = [];
+    function updateRequestorUi(canonical, errors, warnings) {
+      $('reqCount').textContent = String(canonical.length);
+      $('reqErrors').textContent = String(errors.length);
+      $('reqWarnings').textContent = String(warnings.length);
+      $('reqIssues').textContent = [...errors.map(e => `ERROR: ${e}`), ...warnings.map(w => `WARN:  ${w}`)].join('\n');
+    }
+
+    function validateRequestorCsv() {
       const warnings = [];
       const errors = [];
 
@@ -470,12 +511,103 @@
       }
 
       // UI
-      $('reqCount').textContent = String(canonical.length);
-      $('reqErrors').textContent = String(errors.length);
-      $('reqWarnings').textContent = String(warnings.length);
-      $('reqIssues').textContent = [...errors.map(e => `ERROR: ${e}`), ...warnings.map(w => `WARN:  ${w}`)].join('\n');
+      updateRequestorUi(canonical, errors, warnings);
 
       return { canonical, errors, warnings, headersNorm };
+    }
+
+    function normalizeLooseJson(text) {
+      let out = String(text || '').trim();
+      if (!out) return out;
+      // Replace missing fieldMappingId values with null so JSON.parse can succeed.
+      out = out.replace(/"fieldMappingId"\s*:\s*(?=,|\})/g, '"fieldMappingId": null');
+      // If multiple top-level objects are provided without an array, wrap them.
+      if (!out.startsWith('[') && /}\s*,\s*{/.test(out)) {
+        out = `[${out}]`;
+      }
+      return out;
+    }
+
+    function validateRequestorJson() {
+      const warnings = [];
+      const errors = [];
+      const text = $('requestorJson')?.value?.trim() || '';
+      if (!text) {
+        updateRequestorUi([], ['JSON input is empty'], []);
+        return { canonical: [], errors: ['JSON input is empty'], warnings };
+      }
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch (err) {
+        try {
+          const normalized = normalizeLooseJson(text);
+          parsed = JSON.parse(normalized);
+      } catch {
+          const msg = String(err && err.message ? err.message : err);
+          updateRequestorUi([], [`Invalid JSON: ${msg}`], []);
+          return { canonical: [], errors: [`Invalid JSON: ${msg}`], warnings };
+        }
+      }
+      const rows = Array.isArray(parsed) ? parsed : [parsed];
+      if (!rows.length) {
+        updateRequestorUi([], ['JSON input is empty'], []);
+        return { canonical: [], errors: ['JSON input is empty'], warnings };
+      }
+
+      const canonical = rows.map((r, idx) => {
+        const valueId = normKey(r?.externalId ?? r?.valueId ?? r?.['value ID']);
+        const valueName = normKey(r?.externalName ?? r?.valueName ?? r?.['value name']);
+        const payerEntityRaw = r?.payerEntityMappingId ?? r?.payerEntityMappingID ?? r?.payerEntityName;
+        const payerEntityId = parseIntStrict(payerEntityRaw);
+        const entityName = payerEntityId === null ? normKey(payerEntityRaw) : '';
+        return {
+          row: idx + 1,
+          valueId,
+          valueName,
+          entityName,
+          payerEntityIdRaw: payerEntityRaw,
+          defaultValueTypeRaw: r?.defaultValueType,
+          applyToPaymentRaw: r?.applyToPayment,
+          isReadOnlyRaw: r?.isReadOnly
+        };
+      });
+
+      const seenExtId = new Map();
+      canonical.forEach((r) => {
+        if (!r.valueId) errors.push(`Row ${r.row}: externalId is empty`);
+        if (!r.valueName) warnings.push(`Row ${r.row}: externalName is empty`);
+        if (r.payerEntityIdRaw === undefined || r.payerEntityIdRaw === null || String(r.payerEntityIdRaw).trim() === '') {
+          errors.push(`Row ${r.row}: payerEntityMappingId is empty`);
+        }
+        const dvt = parseIntStrict(r.defaultValueTypeRaw);
+        if (dvt === null) errors.push(`Row ${r.row}: defaultValueType must be an integer (got: ${JSON.stringify(r.defaultValueTypeRaw)})`);
+        const ap = parseBool(r.applyToPaymentRaw);
+        if (ap === null) errors.push(`Row ${r.row}: applyToPayment must be boolean-like (got: ${JSON.stringify(r.applyToPaymentRaw)})`);
+        const ro = parseBool(r.isReadOnlyRaw);
+        if (ro === null) errors.push(`Row ${r.row}: isReadOnly must be boolean-like (got: ${JSON.stringify(r.isReadOnlyRaw)})`);
+
+        const key = normKey(r.valueId);
+        if (key) {
+          if (!seenExtId.has(key)) seenExtId.set(key, []);
+          seenExtId.get(key).push(r.row);
+        }
+      });
+
+      for (const [k, rowsWithId] of seenExtId.entries()) {
+        if (rowsWithId.length > 1) warnings.push(`Duplicate externalId "${k}" in rows: ${rowsWithId.join(', ')}`);
+      }
+
+      updateRequestorUi(canonical, errors, warnings);
+      return { canonical, errors, warnings };
+    }
+
+    function validateRequestor() {
+      const format = getRequestorFormat();
+      if (format === REQUESTOR_FORMATS.JSON) {
+        return validateRequestorJson();
+      }
+      return validateRequestorCsv();
     }
 
     // --- PayerEntityMapping parsing/config ---------------------------------
@@ -581,9 +713,13 @@
         const dvt = parseIntStrict(r.defaultValueTypeRaw);
         const ap = parseBool(r.applyToPaymentRaw);
         const ro = parseBool(r.isReadOnlyRaw);
-        const payerEntityMappingId = r.entityName ? (lookup.byName.get(r.entityName.toLowerCase()) ?? null) : null;
+        const payerEntityFromInput = parseIntStrict(r.payerEntityIdRaw);
+        const payerEntityMappingId = payerEntityFromInput !== null
+          ? payerEntityFromInput
+          : (r.entityName ? (lookup.byName.get(r.entityName.toLowerCase()) ?? null) : null);
         if (payerEntityMappingId === null) {
-          mergeErrors.push(`Row ${r.row}: no payerEntityMappingId found for Entity name=${JSON.stringify(r.entityName)}`);
+          const ref = r.entityName || r.payerEntityIdRaw;
+          mergeErrors.push(`Row ${r.row}: no payerEntityMappingId found for ${JSON.stringify(ref)}`);
           return;
         }
         if (dvt === null || ap === null || ro === null || fieldMappingId === null) return;
@@ -662,6 +798,7 @@
     // --- Wire up ------------------------------------------------------------
     function clearAll() {
       $('requestorCsv').value = '';
+      if ($('requestorJson')) $('requestorJson').value = '';
       $('requestorCsvFile').value = '';
       $('payerEntityPaste').value = '';
       $('fieldMappingId').value = '';
@@ -693,7 +830,12 @@
     $('environment').addEventListener('change', () => { /* affects curl endpoint only */ });
     $('instanceId').addEventListener('input', refreshQueries);
     $('fieldMappingId').addEventListener('input', refreshQueries);
+    $('requestorFormat')?.addEventListener('change', (e) => {
+      setRequestorFormat(e.target.value);
+      validateRequestor();
+    });
     $('requestorCsv').addEventListener('input', () => { validateRequestor(); });
+    $('requestorJson')?.addEventListener('input', () => { validateRequestor(); });
 
     if (ENABLE_RUN_API) {
       $('environment').addEventListener('change', () => {
@@ -778,7 +920,12 @@
     $('btnPasteRequestor').addEventListener('click', async () => {
       try {
         const text = await navigator.clipboard.readText();
-        $('requestorCsv').value = text;
+        const format = getRequestorFormat();
+        if (format === REQUESTOR_FORMATS.JSON && $('requestorJson')) {
+          $('requestorJson').value = text;
+        } else {
+          $('requestorCsv').value = text;
+        }
         validateRequestor();
       } catch {
         alert('Unable to read clipboard. Paste manually (Ctrl/Cmd+V).');
@@ -798,10 +945,25 @@
     });
 
     $('btnExampleRequestor').addEventListener('click', () => {
-      $('requestorCsv').value =
+      const format = getRequestorFormat();
+      if (format === REQUESTOR_FORMATS.JSON && $('requestorJson')) {
+        $('requestorJson').value =
+`[
+  {
+    "defaultValueType": 1,
+    "externalId": "2",
+    "externalName": "Singapore",
+    "applyToPayment": true,
+    "isReadOnly": true,
+    "payerEntityMappingId": "Singapore"
+  }
+]`;
+      } else {
+        $('requestorCsv').value =
 `defaultValueType,value ID,value name,applyToPayment,isReadOnly,Entity name
 1,1,DA-Algonquin,true,true,Algonquin
 1,19,DC - Washington DC,true,true,Washington DC`;
+      }
       validateRequestor();
     });
 
@@ -843,6 +1005,7 @@
     });
 
     $('btnClearAll').addEventListener('click', clearAll);
+    setRequestorFormat(getRequestorFormat());
   </script>
 </body>
 </html>

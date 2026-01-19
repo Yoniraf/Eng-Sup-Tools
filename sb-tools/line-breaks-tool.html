@@ -141,6 +141,10 @@
     .lb-inline input[type="text"]{ flex: 1 1 140px; max-width: 230px; }
 
     .lb-actions{ display:flex; gap:10px; margin-top:12px; }
+    .lb-actions .lb-btn{
+      padding: 8.8px 13.2px;
+      font-size: 13.2px;
+    }
     .lb-btn{
       border:1px solid var(--app-border);
       border-radius: 999px;
@@ -289,6 +293,14 @@
           </div>
 
           <div class="lb-option">
+            <input type="checkbox" id="lb_remove_chars">
+            <div class="lb-inline">
+              <div class="txt">Remove characters</div>
+              <input id="lb_remove_chars_text" type="text" placeholder="e.g. &quot;" />
+            </div>
+          </div>
+
+          <div class="lb-option">
             <input type="checkbox" id="lb_one_per_line" checked>
             <div class="txt">For comma output, put each item on a new line</div>
           </div>
@@ -301,7 +313,20 @@
           <div class="lb-section">SQL helper</div>
           <div class="lb-option">
             <input type="checkbox" id="lb_sql_in">
-            <div class="txt">Insert into <code>IN ( ... )</code> (auto single-quotes each value)</div>
+            <div class="txt">Insert into <code>IN ( ... )</code> (optional single quotes)</div>
+          </div>
+          <div class="lb-option" id="lb_sql_quote_wrap">
+            <div class="lb-inline">
+              <div class="txt">SQL IN quoting</div>
+              <label class="lb-inline">
+                <input type="radio" name="lb_sql_quote" id="lb_sql_quote_yes" value="with" checked>
+                <div class="txt">With single quotes</div>
+              </label>
+              <label class="lb-inline">
+                <input type="radio" name="lb_sql_quote" id="lb_sql_quote_no" value="without">
+                <div class="txt">Without single quotes</div>
+              </label>
+            </div>
           </div>
 
           <div class="lb-actions">
@@ -395,6 +420,18 @@
         return `'${escaped}'`;
       }
 
+      function shouldQuoteSql(){
+        const el = document.querySelector('input[name="lb_sql_quote"]:checked');
+        return !el || el.value === 'with';
+      }
+
+      function removeCharsIfNeeded(text){
+        if (!$('lb_remove_chars').checked) return text;
+        const removeValue = $('lb_remove_chars_text').value ?? '';
+        if (!removeValue) return text;
+        return (text ?? '').split(removeValue).join('');
+      }
+
       function outputDelimiterForMode(mode){
         if (mode === 'lb_to_comma') return ',';
         if (mode === 'comma_to_lb') return '\n';
@@ -413,7 +450,7 @@
 
       function execute(){
         const mode = getMode();
-        const raw = inputEl.value || '';
+        const raw = removeCharsIfNeeded(inputEl.value || '');
 
         const parsed = parseItems(raw, mode);
         let items = trimIfNeeded(parsed.items);
@@ -421,7 +458,7 @@
         items = removeDuplicates(items);
 
         if ($('lb_sql_in').checked){
-          const quoted = items.map(sqlSingleQuote);
+          const quoted = shouldQuoteSql() ? items.map(sqlSingleQuote) : items;
           const onePerLine = $('lb_one_per_line').checked;
           const inside = onePerLine ? quoted.join(',\n') : quoted.join(', ');
           const inBody = onePerLine ? `\n${inside}\n` : inside;
@@ -443,6 +480,7 @@
       }
 
       async function copyOut(){
+        execute();
         const text = outputEl.value || '';
         if (!text.trim()){ toast('Nothing to copy'); return; }
         try{
@@ -470,10 +508,14 @@
         if ($('lb_sql_in').checked){
           $('lb_modes').classList.add('lb-disabled');
           $('lb_trailing_comma').checked = false;
+          $('lb_sql_quote_wrap').classList.remove('lb-disabled');
+          for (const el of document.querySelectorAll('input[name="lb_sql_quote"]')) el.disabled = false;
         } else {
           $('lb_modes').classList.remove('lb-disabled');
           $('lb_one_per_line').checked = true;
           $('lb_trailing_comma').checked = true;
+          $('lb_sql_quote_wrap').classList.add('lb-disabled');
+          for (const el of document.querySelectorAll('input[name="lb_sql_quote"]')) el.disabled = true;
         }
       }
 
@@ -492,10 +534,14 @@
         $('lb_before').value = '';
         $('lb_after').value = '';
 
+        $('lb_remove_chars').checked = false;
+        $('lb_remove_chars_text').value = '';
+
         $('lb_one_per_line').checked = true;
         $('lb_trailing_comma').checked = true;
 
         $('lb_sql_in').checked = false;
+        $('lb_sql_quote_yes').checked = true;
         setSqlDefaults();
         updateStats();
         toast('Reset');
