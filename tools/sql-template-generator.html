@@ -79,7 +79,7 @@
             query = query.replace(placeholder, values[index] || '');
           });
 
-          output += query + '\n\n';
+          output += query + '\n';
         }
 
         document.getElementById('output').value = output.trim();
