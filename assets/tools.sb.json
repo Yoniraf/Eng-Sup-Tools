@@ -88,6 +88,14 @@
       "path": "./sb-tools/CSV_Splitter.html",
       "icon": "🔐",
       "tags": ["CSV", "EngSupport"]
+    },
+    {
+      "id": "jwt-decoder",
+      "title": "JWT Decoder",
+      "description": "Decode JWT header/payload locally and optionally verify HS256/384/512 signatures.",
+      "path": "./sb-tools/jwt-decoder.html",
+      "icon": "🔐",
+      "tags": ["JWT", "Security", "Decode", "EngSupport"]
     }
   ]
 }

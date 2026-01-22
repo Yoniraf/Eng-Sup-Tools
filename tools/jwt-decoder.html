@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JWT Decoder</title>
+  <link rel="stylesheet" href="../assets/tool.css" />
+  <link rel="stylesheet" href="../assets/tools-theme.css" />
+  <style>
+    .wrap{max-width: 1560px}
+    .split{display:grid; gap:12px; grid-template-columns: 1fr 1fr; align-items:stretch; min-height: calc(100vh - 220px)}
+    .split .card{height:100%; display:flex; flex-direction:column; margin-top:14px}
+    .split .card > .results-grid{flex:1}
+    .split .card > .results-grid > div{display:flex; flex-direction:column}
+    .grid{display:grid; gap:12px; grid-template-columns: 1fr 1fr}
+    .results-grid{
+      display:grid;
+      gap:12px;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: minmax(160px, auto) 1fr;
+      height:100%;
+      min-height:0;
+    }
+    .results-top{min-height: 160px; display:flex; flex-direction:column}
+    .results-top .output{flex:1; min-height: 90px}
+    .results-wide{grid-column: 1 / -1; display:flex; flex-direction:column; min-height:0}
+    .results-wide .output{flex:1; min-height: 0}
+    .status{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--app-border);
+      background: var(--app-surface-2);
+      font-size:12px;
+    }
+    .status.ok{color: var(--app-accent-2)}
+    .status.warn{color: var(--app-accent)}
+    .status.bad{color: #fca5a5}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+    .inline-actions{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    .inline-actions button{padding:8px 12px}
+    #jwtInput{flex:1; min-height: 260px}
+    .output{flex:1; min-height: 260px}
+    .small{font-size: 12px}
+    .notice{border-left: 3px solid var(--app-accent); padding-left: 10px}
+    @media (max-width: 900px){
+      .split, .grid{grid-template-columns: 1fr}
+    }
+  </style>
+  <script src="../assets/theme-init.js"></script>
+</head>
+<body>
+  <div class="page wrap">
+    <div class="card">
+      <div class="page-head">
+        <div>
+          <h1>JWT Decoder</h1>
+          <div class="page-sub">Decode JWT header and payload locally in the browser. Optional HS256/384/512 signature verification.</div>
+        </div>
+        <div class="page-actions">
+          <div id="status" class="status warn">Waiting for token</div>
+        </div>
+      </div>
+      <div class="muted notice small">
+        For safety, avoid pasting production tokens. All decoding happens locally in your browser.
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="card">
+        <label for="jwtInput">JWT</label>
+        <textarea id="jwtInput" rows="5" placeholder="Paste a JWT here (header.payload.signature)"></textarea>
+        <div class="row" style="margin-top: 10px">
+          <button type="button" onclick="decodeJwt()">Decode</button>
+          <button type="button" class="secondary" onclick="clearAll()">Clear</button>
+          <span class="muted small">Auto-decode on input is enabled.</span>
+        </div>
+        <hr />
+        <div class="grid">
+          <div>
+            <label for="secret">Signature secret (optional, HS256/384/512)</label>
+            <input type="text" id="secret" placeholder="Enter secret to verify signature" />
+          </div>
+          <div>
+            <label for="alg">Detected alg</label>
+            <input type="text" id="alg" readonly placeholder="alg will appear after decode" />
+          </div>
+        </div>
+        <div class="inline-actions" style="margin-top:10px">
+          <button type="button" onclick="verifySignature()">Verify signature</button>
+          <span id="verifyStatus" class="muted small">No verification performed.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="results-grid">
+          <div class="results-top">
+            <label for="headerOutput">Decoded header</label>
+            <textarea id="headerOutput" class="output" readonly placeholder="Header JSON will appear here"></textarea>
+            <div class="inline-actions" style="margin-top:8px">
+              <button type="button" onclick="copyText('headerOutput', this)">Copy header</button>
+            </div>
+          </div>
+          <div class="results-top">
+            <label for="signatureOutput">Signature (base64url)</label>
+            <textarea id="signatureOutput" class="output mono" readonly placeholder="Signature will appear here"></textarea>
+            <div class="inline-actions" style="margin-top:8px">
+              <button type="button" onclick="copyText('signatureOutput', this)">Copy signature</button>
+            </div>
+          </div>
+          <div class="results-wide">
+            <label for="payloadOutput">Decoded payload</label>
+            <textarea id="payloadOutput" class="output" readonly placeholder="Payload JSON will appear here"></textarea>
+            <div class="inline-actions" style="margin-top:8px">
+              <button type="button" onclick="copyText('payloadOutput', this)">Copy payload</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const jwtInput = document.getElementById('jwtInput');
+    const headerOutput = document.getElementById('headerOutput');
+    const payloadOutput = document.getElementById('payloadOutput');
+    const signatureOutput = document.getElementById('signatureOutput');
+    const statusEl = document.getElementById('status');
+    const verifyStatusEl = document.getElementById('verifyStatus');
+    const algInput = document.getElementById('alg');
+
+    jwtInput.addEventListener('input', () => decodeJwt());
+
+    function setStatus(text, level = 'warn') {
+      statusEl.textContent = text;
+      statusEl.className = `status ${level}`;
+    }
+
+    function setVerifyStatus(text, level = '') {
+      verifyStatusEl.textContent = text;
+      verifyStatusEl.className = `muted small ${level}`.trim();
+    }
+
+    function clearAll() {
+      jwtInput.value = '';
+      headerOutput.value = '';
+      payloadOutput.value = '';
+      signatureOutput.value = '';
+      algInput.value = '';
+      setStatus('Waiting for token', 'warn');
+      setVerifyStatus('No verification performed.');
+    }
+
+    function base64UrlToBase64(input) {
+      let str = input.replace(/-/g, '+').replace(/_/g, '/');
+      const pad = str.length % 4;
+      if (pad === 2) str += '==';
+      else if (pad === 3) str += '=';
+      else if (pad !== 0) str += '===';
+      return str;
+    }
+
+    function base64UrlDecode(input) {
+      const b64 = base64UrlToBase64(input);
+      const binary = atob(b64);
+      const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
+    }
+
+    function base64UrlEncode(bytes) {
+      let binary = '';
+      bytes.forEach(b => { binary += String.fromCharCode(b); });
+      const b64 = btoa(binary);
+      return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    }
+
+    function safeJsonParse(text) {
+      try {
+        const parsed = JSON.parse(text);
+        return { ok: true, value: JSON.stringify(parsed, null, 2), parsed };
+      } catch (err) {
+        return { ok: false, value: text, error: err };
+      }
+    }
+
+    function decodeJwt() {
+      const token = jwtInput.value.trim();
+      if (!token) {
+        clearAll();
+        return;
+      }
+
+      const parts = token.split('.');
+      if (parts.length < 2) {
+        headerOutput.value = '';
+        payloadOutput.value = '';
+        signatureOutput.value = '';
+        algInput.value = '';
+        setStatus('Invalid token format (expected 2-3 segments)', 'bad');
+        setVerifyStatus('No verification performed.');
+        return;
+      }
+
+      const [headerSeg, payloadSeg, signatureSeg = ''] = parts;
+      signatureOutput.value = signatureSeg || '';
+
+      try {
+        const headerText = base64UrlDecode(headerSeg);
+        const payloadText = base64UrlDecode(payloadSeg);
+        const headerParsed = safeJsonParse(headerText);
+        const payloadParsed = safeJsonParse(payloadText);
+
+        headerOutput.value = headerParsed.value;
+        payloadOutput.value = payloadParsed.value;
+
+        if (headerParsed.ok && headerParsed.parsed && headerParsed.parsed.alg) {
+          algInput.value = headerParsed.parsed.alg;
+        } else {
+          algInput.value = '';
+        }
+
+        if (!headerParsed.ok || !payloadParsed.ok) {
+          setStatus('Decoded, but JSON parse failed', 'warn');
+        } else {
+          setStatus('Decoded', 'ok');
+        }
+        setVerifyStatus('No verification performed.');
+      } catch (err) {
+        headerOutput.value = '';
+        payloadOutput.value = '';
+        signatureOutput.value = signatureSeg || '';
+        algInput.value = '';
+        setStatus('Failed to decode token', 'bad');
+        setVerifyStatus('No verification performed.');
+      }
+    }
+
+    async function verifySignature() {
+      const token = jwtInput.value.trim();
+      if (!token) {
+        setVerifyStatus('Paste a token first.');
+        return;
+      }
+
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        setVerifyStatus('Signature verification requires 3 segments.');
+        return;
+      }
+
+      const [headerSeg, payloadSeg, signatureSeg] = parts;
+      const secret = document.getElementById('secret').value;
+      if (!secret) {
+        setVerifyStatus('Enter a secret to verify.');
+        return;
+      }
+
+      let headerJson;
+      try {
+        headerJson = JSON.parse(base64UrlDecode(headerSeg));
+      } catch (_) {
+        setVerifyStatus('Invalid header JSON.');
+        return;
+      }
+
+      const alg = (headerJson && headerJson.alg) ? String(headerJson.alg) : '';
+      algInput.value = alg;
+
+      if (!alg || alg.toLowerCase() === 'none') {
+        setVerifyStatus('alg=none or missing; no signature to verify.');
+        return;
+      }
+
+      const algoMap = {
+        HS256: 'SHA-256',
+        HS384: 'SHA-384',
+        HS512: 'SHA-512'
+      };
+      const hashName = algoMap[alg];
+      if (!hashName) {
+        setVerifyStatus(`Verification not supported for alg: ${alg}`);
+        return;
+      }
+
+      const signingInput = `${headerSeg}.${payloadSeg}`;
+      try {
+        const keyData = new TextEncoder().encode(secret);
+        const key = await crypto.subtle.importKey(
+          'raw',
+          keyData,
+          { name: 'HMAC', hash: { name: hashName } },
+          false,
+          ['sign']
+        );
+        const sigBuffer = await crypto.subtle.sign(
+          'HMAC',
+          key,
+          new TextEncoder().encode(signingInput)
+        );
+        const computed = base64UrlEncode(new Uint8Array(sigBuffer));
+        if (computed === signatureSeg) {
+          setVerifyStatus('Signature verified.', 'ok');
+        } else {
+          setVerifyStatus('Signature invalid.', 'bad');
+        }
+      } catch (err) {
+        setVerifyStatus('Signature verification failed.');
+      }
+    }
+
+    async function copyText(id, buttonEl) {
+      const el = document.getElementById(id);
+      const text = el?.value || '';
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+          return indicateCopied(buttonEl);
+        }
+      } catch (_) {
+        // fall back below
+      }
+
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.style.top = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        indicateCopied(buttonEl);
+      } catch (_) {
+        indicateCopied(buttonEl, 'Copy failed');
+      }
+    }
+
+    function indicateCopied(buttonEl, label = 'Copied!') {
+      if (!buttonEl) return;
+      const original = buttonEl.dataset.originalLabel || buttonEl.textContent;
+      buttonEl.dataset.originalLabel = original;
+      if (buttonEl.__copiedTimeout) clearTimeout(buttonEl.__copiedTimeout);
+      buttonEl.textContent = label;
+      buttonEl.classList.add('copied');
+      buttonEl.__copiedTimeout = setTimeout(() => {
+        buttonEl.textContent = original;
+        buttonEl.classList.remove('copied');
+      }, 900);
+    }
+  </script>
+</body>
+</html>

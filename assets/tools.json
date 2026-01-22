@@ -90,6 +90,14 @@
       "path": "./tools/CSV_Splitter.html",
       "icon": "\ud83d\udd10",
       "tags": ["CSV", "EngSupport"]
+    },
+    {
+      "id": "jwt-decoder",
+      "title": "JWT Decoder",
+      "description": "Decode JWT header/payload locally and optionally verify HS256/384/512 signatures.",
+      "path": "./tools/jwt-decoder.html",
+      "icon": "\ud83d\udd10",
+      "tags": ["JWT", "Security", "Decode", "EngSupport"]
     }
   ]
 }
