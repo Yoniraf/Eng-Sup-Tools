@@ -6,6 +6,17 @@
   const DESKTOP_PROXY_BASE_URL = APP_URL.searchParams.get('proxyBaseUrl') || '';
   const DESKTOP_USE_PROXY = APP_URL.searchParams.get('useProxy') || (DESKTOP_PROXY_BASE_URL ? '1' : '');
 
+  function setFavicon(href) {
+    try {
+      const existing = document.querySelector('link[rel="icon"], link[rel="shortcut icon"]');
+      const link = existing || document.createElement('link');
+      link.rel = 'icon';
+      link.type = 'image/png';
+      link.href = href;
+      if (!existing) document.head.appendChild(link);
+    } catch { /* ignore */ }
+  }
+
   const els = {
     app: document.querySelector('.app'),
     list: document.getElementById('tool-list'),
@@ -24,6 +35,8 @@
   let tools = [];
   let activeId = null;
   let currentTheme = 'dark';
+
+  setFavicon(new URL('./assets/favicon.png', location.href).toString());
 
   // Cache iframes per tool so switching tools keeps their state.
   const framesById = new Map();

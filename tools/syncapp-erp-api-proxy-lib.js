@@ -59,7 +59,7 @@ function doRequest({ url, method, headers, timeoutMs, body }) {
         resp.on('end', () => {
           const respHeaders = {};
           for (const [k, v] of Object.entries(resp.headers || {})) {
-            respHeaders[String(k).toLowerCase()] = Array.isArray(v) ? v.join(', ') : (v ?? '');
+            respHeaders[String(k).toLowerCase()] = Array.isArray(v) ? v.join(', ') : (v === undefined || v === null ? '' : v);
           }
           resolve({
             ok: resp.statusCode >= 200 && resp.statusCode < 300,

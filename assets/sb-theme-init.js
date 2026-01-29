@@ -1,6 +1,17 @@
 // SB-only theme initializer for sb-tools/* pages.
 // Visual-only: sets data-theme and updates JSONEditor theme if present.
 (function () {
+  function setFavicon(href) {
+    try {
+      const existing = document.querySelector('link[rel="icon"], link[rel="shortcut icon"]');
+      const link = existing || document.createElement('link');
+      link.rel = 'icon';
+      link.type = 'image/png';
+      link.href = href;
+      if (!existing) document.head.appendChild(link);
+    } catch { /* ignore */ }
+  }
+
   const u = new URL(location.href);
   const env = String(u.searchParams.get('env') || 'sb').toLowerCase();
   if (env !== 'sb' && env !== 'sandbox') return; // never affect production tools
@@ -8,6 +19,8 @@
   const theme = String(u.searchParams.get('theme') || 'light').toLowerCase() === 'dark' ? 'dark' : 'light';
   document.documentElement.dataset.env = 'sb';
   document.documentElement.dataset.theme = theme;
+
+  setFavicon(new URL('../assets/favicon.png', location.href).toString());
 
   function applyJsonEditorTheme(nextTheme) {
     try {

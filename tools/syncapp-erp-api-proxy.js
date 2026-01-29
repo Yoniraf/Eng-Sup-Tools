@@ -18,7 +18,7 @@
 const { createProxyServer, parseAllowedOrigins } = require('./syncapp-erp-api-proxy-lib');
 
 const portEnv = process.env.PORT;
-const requestedPort = Number(portEnv ?? 8787);
+const requestedPort = Number(portEnv === undefined || portEnv === null ? 8787 : portEnv);
 const HOST = String(process.env.HOST || '127.0.0.1');
 const allowedOrigins = parseAllowedOrigins(process.env.ALLOWED_ORIGINS);
 

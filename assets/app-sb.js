@@ -6,6 +6,17 @@
 
   const APP_URL = new URL(location.href);
 
+  function setFavicon(href) {
+    try {
+      const existing = document.querySelector('link[rel="icon"], link[rel="shortcut icon"]');
+      const link = existing || document.createElement('link');
+      link.rel = 'icon';
+      link.type = 'image/png';
+      link.href = href;
+      if (!existing) document.head.appendChild(link);
+    } catch { /* ignore */ }
+  }
+
   const els = {
     app: document.querySelector('.app'),
     list: document.getElementById('tool-list'),
@@ -29,6 +40,8 @@
   let tools = [];
   let activeId = null;
   let currentTheme = 'light';
+
+  setFavicon(new URL('./assets/favicon.png', location.href).toString());
 
   function isValidTheme(t) {
     return t === 'dark' || t === 'light';

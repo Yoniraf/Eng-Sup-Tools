@@ -1,5 +1,16 @@
 // Production tool theme initializer. Visual-only: sets data-theme and updates JSONEditor theme if present.
 (function () {
+  function setFavicon(href) {
+    try {
+      const existing = document.querySelector('link[rel="icon"], link[rel="shortcut icon"]');
+      const link = existing || document.createElement('link');
+      link.rel = 'icon';
+      link.type = 'image/png';
+      link.href = href;
+      if (!existing) document.head.appendChild(link);
+    } catch { /* ignore */ }
+  }
+
   function normalizeTheme(raw) {
     const v = String(raw || '').toLowerCase();
     return v === 'light' ? 'light' : 'dark';
@@ -8,6 +19,8 @@
   const u = new URL(location.href);
   const theme = normalizeTheme(u.searchParams.get('theme') || 'dark');
   document.documentElement.dataset.theme = theme;
+
+  setFavicon(new URL('../assets/favicon.png', location.href).toString());
 
   function applyJsonEditorTheme(nextTheme) {
     try {

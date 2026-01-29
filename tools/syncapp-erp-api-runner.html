@@ -129,6 +129,17 @@
       border-color: rgba(96,165,250,.85);
       background: rgba(96,165,250,.10);
     }
+    .field-suggestions{
+      max-height: 180px;
+      overflow: auto;
+    }
+    .field-suggestions label{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin:4px 0;
+    }
+    .field-actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:8px}
   </style>
   <script src="../assets/theme-init.js"></script>
 </head>
@@ -362,6 +373,10 @@
             <div>
               <label for="qpSearchId">searchId</label>
               <input id="qpSearchId" type="text" placeholder="e.g. 12345" />
+              <div class="rowline small" style="margin-top:6px">
+                <button id="btnUseSampleSearchId" type="button" class="secondary tight">Use searchId from first response</button>
+                <span id="sampleSearchIdHint" class="muted">No sample yet.</span>
+              </div>
             </div>
             <div>
               <label for="qpPageIndex">pageIndex</label>
@@ -548,12 +563,42 @@
         <div>
           <label for="aggMode">Aggregation mode</label>
           <select id="aggMode">
-            <option value="full" selected>Full (meta + results)</option>
+            <option value="full" selected>Responses only (per request)</option>
             <option value="entities">Entities only (flatten body.entities)</option>
+            <option value="filtered">Filtered fields (from each entity/object)</option>
           </select>
           <div class="muted small" style="margin-top:6px">
+            “Responses only” outputs just the API response body (no meta).
             “Entities only” outputs a JSON array containing only <code>body.entities</code> from each successful response.
+            “Filtered fields” outputs a JSON array with only the fields you pick below.
           </div>
+        </div>
+      </div>
+
+      <div class="grid" style="margin-top:10px">
+        <div>
+          <label for="previewResultLimit">Preview result limit</label>
+          <input id="previewResultLimit" type="number" min="1" step="1" value="50" />
+          <div class="muted small" style="margin-top:6px">
+            Preview is capped for stability. Copy/download uses the full output.
+          </div>
+        </div>
+        <div>
+          <label for="fieldFilter">Field filter (comma-separated)</label>
+          <input id="fieldFilter" type="text" placeholder="id,name,status,updatedAt" />
+          <div class="muted small" style="margin-top:6px">
+              Applies only to “Filtered fields” mode. Use dot notation for nested keys (e.g. <code>entity.internalId</code>).
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:10px">
+        <div class="muted small">Suggested fields from the first successful response:</div>
+        <div id="fieldSuggestions" class="codebox small field-suggestions" style="margin-top:8px">No sample yet.</div>
+        <div class="field-actions">
+          <button id="btnUseSuggestedFields" type="button" class="secondary">Use selected fields</button>
+          <button id="btnSelectAllSuggested" type="button" class="secondary">Select all</button>
+          <button id="btnClearSuggested" type="button" class="secondary">Clear</button>
         </div>
       </div>
 
@@ -562,7 +607,7 @@
         <button id="btnDownloadAgg" type="button" class="secondary">Download JSON</button>
       </div>
 
-      <label for="aggOut">Aggregated JSON</label>
+      <label for="aggOut">Aggregated JSON (preview)</label>
       <textarea id="aggOut" class="mono big" placeholder="{ ... }"></textarea>
       </div>
     </div>
@@ -653,6 +698,10 @@
 
     // ---------------- Helpers ----------------------------------------------
     const STORAGE_KEY = 'syncapp_erp_api_runner_v1';
+    const PREVIEW_RESULT_LIMIT_DEFAULT = 50;
+    const PREVIEW_BODY_CHAR_LIMIT_DEFAULT = 4000;
+    const SAMPLE_FIELD_LIMIT = 120;
+    const SAMPLE_FIELD_DEPTH = 4;
     let savedActionKey = null;
 
     const $ = (id) => document.getElementById(id);
@@ -736,17 +785,294 @@
       return out;
     }
 
+    function getPreviewResultLimit() {
+      const raw = Number($('previewResultLimit')?.value || PREVIEW_RESULT_LIMIT_DEFAULT);
+      if (!Number.isFinite(raw) || raw <= 0) return PREVIEW_RESULT_LIMIT_DEFAULT;
+      return Math.max(1, Math.floor(raw));
+    }
+
+    function truncateString(val, maxChars) {
+      const s = String(val ?? '');
+      if (s.length <= maxChars) return s;
+      return s.slice(0, Math.max(0, maxChars - 1)) + '…';
+    }
+
+    function previewEntity(entity) {
+      if (entity === null || entity === undefined) return entity;
+      if (typeof entity !== 'object') return entity;
+      if (Array.isArray(entity)) {
+        const out = entity.slice(0, 10).map(v => (typeof v === 'string' ? truncateString(v, 120) : (typeof v === 'object' ? '[omitted]' : v)));
+        if (entity.length > out.length) out.push(`[+${entity.length - out.length} more]`);
+        return out;
+      }
+      const keys = Object.keys(entity);
+      const limit = Math.min(keys.length, 25);
+      const out = {};
+      for (let i = 0; i < limit; i++) {
+        const k = keys[i];
+        const v = entity[k];
+        if (typeof v === 'string') out[k] = truncateString(v, 200);
+        else if (typeof v === 'number' || typeof v === 'boolean' || v === null) out[k] = v;
+        else out[k] = '[omitted]';
+      }
+      if (keys.length > limit) out.__omittedKeys = keys.length - limit;
+      return out;
+    }
+
+    function parseFieldFilter() {
+      const raw = String($('fieldFilter')?.value || '');
+      return raw
+        .split(/[\n,\s]+/g)
+        .map(s => String(s).trim())
+        .filter(Boolean);
+    }
+
+    function getFilterItemsFromBody(body) {
+      if (!body) return [];
+      if (Array.isArray(body)) return body;
+      if (body && typeof body === 'object' && Array.isArray(body.entities)) return body.entities;
+      if (body && typeof body === 'object') return [body];
+      return [];
+    }
+
+    function flattenKeysFromSample(obj, prefix, depth, out) {
+      if (!obj || depth <= 0) return;
+      if (Array.isArray(obj)) {
+        const first = obj[0];
+        if (first && typeof first === 'object') {
+          flattenKeysFromSample(first, `${prefix}[]`, depth - 1, out);
+        } else if (prefix) {
+          out.add(prefix + '[]');
+        }
+        return;
+      }
+      if (typeof obj !== 'object') {
+        if (prefix) out.add(prefix);
+        return;
+      }
+      for (const [k, v] of Object.entries(obj)) {
+        const next = prefix ? `${prefix}.${k}` : k;
+        if (v && typeof v === 'object') {
+          flattenKeysFromSample(v, next, depth - 1, out);
+        } else {
+          out.add(next);
+        }
+        if (out.size >= SAMPLE_FIELD_LIMIT) break;
+      }
+    }
+
+    function collectSampleFieldsFromBody(body) {
+      const items = getFilterItemsFromBody(body);
+      if (!items.length) return [];
+      const sample = items[0];
+      const out = new Set();
+      flattenKeysFromSample(sample, '', SAMPLE_FIELD_DEPTH, out);
+      return [...out].slice(0, SAMPLE_FIELD_LIMIT);
+    }
+
+    function renderFieldSuggestions(fields) {
+      const wrap = $('fieldSuggestions');
+      if (!wrap) return;
+      if (!fields || !fields.length) {
+        wrap.textContent = 'No sample yet.';
+        return;
+      }
+      wrap.innerHTML = '';
+      fields.forEach(f => {
+        const label = document.createElement('label');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.value = f;
+        cb.addEventListener('change', syncFieldFilterFromSuggestions);
+        label.appendChild(cb);
+        const span = document.createElement('span');
+        span.textContent = f;
+        label.appendChild(span);
+        wrap.appendChild(label);
+      });
+    }
+
+    function getSelectedSuggestedFields() {
+      const wrap = $('fieldSuggestions');
+      if (!wrap) return [];
+      return [...wrap.querySelectorAll('input[type="checkbox"]:checked')].map(cb => cb.value);
+    }
+
+    function setAllSuggestedFields(checked) {
+      const wrap = $('fieldSuggestions');
+      if (!wrap) return;
+      wrap.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = Boolean(checked); });
+    }
+
+    function applySuggestedFieldsToFilter() {
+      const selected = getSelectedSuggestedFields();
+      if (!selected.length) {
+        $('fieldFilter').value = '';
+        refreshAggregatedOutput();
+        saveState();
+        return;
+      }
+      $('fieldFilter').value = selected.join(', ');
+      refreshAggregatedOutput();
+      saveState();
+    }
+
+    function syncFieldFilterFromSuggestions() {
+      applySuggestedFieldsToFilter();
+    }
+
+    function updateSampleSearchIdUi() {
+      const btn = $('btnUseSampleSearchId');
+      const hint = $('sampleSearchIdHint');
+      if (!btn || !hint) return;
+      if (sampleSearchId) {
+        btn.disabled = false;
+        hint.textContent = `Sample: ${sampleSearchId}`;
+      } else {
+        btn.disabled = true;
+        hint.textContent = 'No sample yet.';
+      }
+    }
+
+    function useSampleSearchId() {
+      if (!sampleSearchId) {
+        alert('No searchId captured yet. Run once to fetch a searchId first.');
+        return;
+      }
+      $('qpSearchId').value = sampleSearchId;
+      updateUrlPreview();
+      updateRunnerCounts();
+      saveState();
+    }
+
+    function getValueByPath(obj, pathParts, idx = 0) {
+      if (!obj || idx >= pathParts.length) return obj;
+      let key = pathParts[idx];
+      const isArray = key.endsWith('[]');
+      if (isArray) key = key.slice(0, -2);
+      const nextVal = obj ? obj[key] : undefined;
+      if (nextVal === undefined || nextVal === null) return undefined;
+      if (isArray) {
+        if (!Array.isArray(nextVal)) return undefined;
+        if (idx === pathParts.length - 1) return nextVal;
+        return nextVal.map(v => getValueByPath(v, pathParts, idx + 1)).filter(v => v !== undefined);
+      }
+      return getValueByPath(nextVal, pathParts, idx + 1);
+    }
+
+    function normalizeFieldPath(path) {
+      let p = String(path || '').trim();
+      if (!p) return '';
+      if (p.startsWith('body.')) p = p.slice(5);
+      if (p.startsWith('entities[].')) p = p.slice(11);
+      else if (p.startsWith('entities.')) p = p.slice(9);
+      if (p.startsWith('entities[]')) p = p.replace(/^entities\[\]\.?/, '');
+      return p;
+    }
+
+    function applyFieldFilterToItems(items, fields) {
+      if (!fields.length) return [];
+      const out = [];
+      for (const item of items) {
+        const row = {};
+        let hasAny = false;
+        for (const f of fields) {
+          const norm = normalizeFieldPath(f);
+          const parts = String(norm).split('.').map(s => s.trim()).filter(Boolean);
+          if (!parts.length) continue;
+          const val = getValueByPath(item, parts, 0);
+          if (val !== undefined) {
+            row[f] = val;
+            hasAny = true;
+          }
+        }
+        if (hasAny) out.push(row);
+      }
+      return out;
+    }
+
+    function buildResponsesOnly(fullAgg, preview) {
+      const results = (fullAgg && Array.isArray(fullAgg.results)) ? fullAgg.results : [];
+      const out = [];
+      const limit = preview ? getPreviewResultLimit() : Infinity;
+      for (const r of results) {
+        if (out.length >= limit) break;
+        if (r && r.body !== undefined) {
+          out.push(preview ? previewEntity(r.body) : r.body);
+          continue;
+        }
+        if (r && r.rawText !== undefined && r.rawText !== null) {
+          out.push(preview ? truncateString(r.rawText, PREVIEW_BODY_CHAR_LIMIT_DEFAULT) : r.rawText);
+        }
+      }
+      return out;
+    }
+
+    function buildFilteredOutput(fullAgg, preview) {
+      const fields = parseFieldFilter();
+      const results = (fullAgg && Array.isArray(fullAgg.results)) ? fullAgg.results : [];
+      const out = [];
+      const limit = preview ? getPreviewResultLimit() : Infinity;
+      for (const r of results) {
+        if (out.length >= limit) break;
+        const items = getFilterItemsFromBody(r && r.body);
+        if (!items.length) continue;
+        const filteredItems = applyFieldFilterToItems(items, fields);
+        for (const item of filteredItems) {
+          out.push(item);
+          if (out.length >= limit) break;
+        }
+      }
+      return out;
+    }
+
+    function buildPreviewFull(fullAgg) {
+      const results = (fullAgg && Array.isArray(fullAgg.results)) ? fullAgg.results : [];
+      const limit = getPreviewResultLimit();
+      const preview = { meta: fullAgg.meta || {}, results: [] };
+      for (let i = 0; i < results.length && preview.results.length < limit; i++) {
+        const r = results[i];
+        let bodyPreview = null;
+        if (r && r.body !== undefined) {
+          if (typeof r.body === 'object') bodyPreview = previewEntity(r.body);
+          else bodyPreview = truncateString(r.body, PREVIEW_BODY_CHAR_LIMIT_DEFAULT);
+        }
+        const rawTextPreview = r && r.rawText ? truncateString(r.rawText, PREVIEW_BODY_CHAR_LIMIT_DEFAULT) : null;
+        preview.results.push({
+          iteration: r.iteration,
+          input: r.input,
+          request: r.request,
+          response: r.response,
+          bodyPreview: bodyPreview,
+          rawTextPreview: rawTextPreview,
+        });
+      }
+      return preview;
+    }
+
+    function buildOutput({ preview }) {
+      if (!aggregated) return null;
+      const mode = getAggregationMode();
+      if (mode === 'entities') {
+        const entities = computeEntitiesOnly(aggregated);
+        if (!preview) return entities;
+        return entities.slice(0, getPreviewResultLimit()).map(previewEntity);
+      }
+      if (mode === 'filtered') {
+        const filtered = buildFilteredOutput(aggregated, preview);
+        if (!preview) return filtered;
+        return filtered.slice(0, getPreviewResultLimit());
+      }
+      return buildResponsesOnly(aggregated, preview);
+    }
+
     function refreshAggregatedOutput() {
       if (!aggregated) {
         $('aggOut').value = '';
         return;
       }
-      const mode = getAggregationMode();
-      if (mode === 'entities') {
-        $('aggOut').value = safeJsonStringify(computeEntitiesOnly(aggregated));
-      } else {
-        $('aggOut').value = safeJsonStringify(aggregated);
-      }
+      const out = buildOutput({ preview: true });
+      $('aggOut').value = safeJsonStringify(out);
     }
 
     function addLog(line) {
@@ -1210,6 +1536,8 @@
         singleVarSuffix: $('singleVarSuffix')?.value ?? '',
         rememberToken: remember,
         aggMode: getAggregationMode(),
+        previewResultLimit: $('previewResultLimit')?.value ?? PREVIEW_RESULT_LIMIT_DEFAULT,
+        fieldFilter: $('fieldFilter')?.value ?? '',
       };
       if (remember) s.bearerToken = $('bearerToken').value;
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
@@ -1248,6 +1576,8 @@
         if (typeof s.rememberToken === 'boolean') $('rememberToken').checked = s.rememberToken;
         if (s.rememberToken && s.bearerToken) $('bearerToken').value = s.bearerToken;
         if (s.aggMode && $('aggMode')) $('aggMode').value = s.aggMode;
+        if (s.previewResultLimit !== undefined && $('previewResultLimit')) $('previewResultLimit').value = s.previewResultLimit;
+        if (typeof s.fieldFilter === 'string' && $('fieldFilter')) $('fieldFilter').value = s.fieldFilter;
       } catch {}
     }
 
@@ -1622,6 +1952,8 @@
     let stopRequested = false;
     let isRunning = false;
     let aggregated = null;
+    let sampleFieldCandidates = [];
+    let sampleSearchId = '';
 
     function setButtonsRunning(running) {
       isRunning = running;
@@ -1865,6 +2197,15 @@
           }
         }
 
+        if (!sampleFieldCandidates.length && ok && bodyJson && typeof bodyJson === 'object') {
+          sampleFieldCandidates = collectSampleFieldsFromBody(bodyJson);
+          renderFieldSuggestions(sampleFieldCandidates);
+        }
+        if (!sampleSearchId && ok && bodyJson && typeof bodyJson === 'object' && bodyJson.searchId) {
+          sampleSearchId = String(bodyJson.searchId);
+          updateSampleSearchIdUi();
+        }
+
         const elapsedMs = Math.round(performance.now() - startedAt);
 
         if (error || !ok) {
@@ -1951,14 +2292,21 @@
       resetStats();
       $('aggOut').value = '';
       if ($('aggMode')) $('aggMode').value = 'full';
+      if ($('previewResultLimit')) $('previewResultLimit').value = PREVIEW_RESULT_LIMIT_DEFAULT;
+      if ($('fieldFilter')) $('fieldFilter').value = '';
+      sampleFieldCandidates = [];
+      renderFieldSuggestions(sampleFieldCandidates);
+      sampleSearchId = '';
+      updateSampleSearchIdUi();
       setTokenStatus();
       try { localStorage.removeItem(STORAGE_KEY); } catch {}
       updateUrlPreview();
     }
 
     async function copyAgg() {
-      const txt = $('aggOut').value || '';
-      if (!txt.trim()) { alert('Nothing to copy yet. Run a request first.'); return; }
+      const out = buildOutput({ preview: false });
+      const txt = safeJsonStringify(out || {});
+      if (!txt.trim() || !aggregated) { alert('Nothing to copy yet. Run a request first.'); return; }
       try {
         await navigator.clipboard.writeText(txt);
         $('btnCopyAgg').classList.add('copied');
@@ -1970,8 +2318,9 @@
     }
 
     function downloadAgg() {
-      const txt = $('aggOut').value || '';
-      if (!txt.trim()) { alert('Nothing to download yet. Run a request first.'); return; }
+      const out = buildOutput({ preview: false });
+      const txt = safeJsonStringify(out || {});
+      if (!txt.trim() || !aggregated) { alert('Nothing to download yet. Run a request first.'); return; }
       const blob = new Blob([txt], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -2204,6 +2553,7 @@
       $(id).addEventListener('input', () => { updateUrlPreview(); updateRunnerCounts(); saveState(); });
       $(id).addEventListener('change', () => { updateUrlPreview(); updateRunnerCounts(); saveState(); });
     });
+    $('btnUseSampleSearchId').addEventListener('click', useSampleSearchId);
 
     $('runnerEnabled').addEventListener('change', toggleRunnerUi);
     $('runnerMode').addEventListener('change', () => { toggleSingleVarUi(); updateRunnerCounts(); });
@@ -2288,11 +2638,21 @@
       clearLogs();
       resetStats();
       aggregated = null;
+      sampleFieldCandidates = [];
+      renderFieldSuggestions(sampleFieldCandidates);
+      sampleSearchId = '';
+      updateSampleSearchIdUi();
       $('aggOut').value = '';
     });
     $('btnCopyAgg').addEventListener('click', copyAgg);
     $('btnDownloadAgg').addEventListener('click', downloadAgg);
     $('aggMode').addEventListener('change', () => { refreshAggregatedOutput(); saveState(); });
+    $('previewResultLimit').addEventListener('input', () => { refreshAggregatedOutput(); saveState(); });
+    $('previewResultLimit').addEventListener('change', () => { refreshAggregatedOutput(); saveState(); });
+    $('fieldFilter').addEventListener('input', () => { refreshAggregatedOutput(); saveState(); });
+    $('btnUseSuggestedFields').addEventListener('click', applySuggestedFieldsToFilter);
+    $('btnSelectAllSuggested').addEventListener('click', () => { setAllSuggestedFields(true); });
+    $('btnClearSuggested').addEventListener('click', () => { setAllSuggestedFields(false); });
 
     // ---------------- Init -------------------------------------------------
     (function init() {
@@ -2303,6 +2663,8 @@
       warnIfMixedContentProxy();
       loadSectionState();
       renderCustomQpRows();
+      renderFieldSuggestions(sampleFieldCandidates);
+      updateSampleSearchIdUi();
       // After loading state, rerender registry-dependent UI
       renderActionOptions();
       if (savedActionKey && [...$('actionSelect').options].some(o => o.value === savedActionKey)) {
