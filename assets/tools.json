@@ -68,6 +68,14 @@
       "tags": ["Bulk Update", "syncEngine"]
     },
     {
+      "id": "deprecate-external-ids",
+      "title": "Deprecate External IDs",
+      "description": "Generate MongoDB Compass update statements to deprecate external IDs using an OP ticket.",
+      "path": "./tools/deprecateExternalIds.html",
+      "icon": "\ud83d\udd10",
+      "tags": ["MongoDB", "Compass", "Update", "EngSupport"]
+    },
+    {
       "id": "retrySepecificSyncEngine",
       "title": "Retry Specific SyncEngine",
       "description": "Batch-call SyncEngine scheduleRetrySync for a list of IDs (with batching, retries, progress, and logs).",

@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deprecate External IDs</title>
+  <link rel="stylesheet" href="../assets/tool.css" />
+  <script src="../assets/sb-theme-init.js"></script>
+  <style>
+    .wrap{max-width: 980px}
+    .grid{
+      display:grid;
+      gap:12px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+    .section-title{
+      font-size: 12px;
+      color: var(--app-muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin: 4px 0 8px;
+      font-weight: 800;
+    }
+    .button-group{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-top: 10px;
+    }
+    .mono{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    #inputExternalIds{min-height: 200px}
+    .output{
+      min-height: 160px;
+      border: 1px solid var(--app-border);
+      border-radius: 12px;
+      padding: 12px;
+      background: var(--app-surface-2);
+      overflow: auto;
+    }
+    #copyBtn.copied{
+      background: rgba(52,211,153,.18);
+      border-color: rgba(52,211,153,.45);
+    }
+    .note{
+      border-left: 3px solid var(--app-accent);
+      padding-left: 10px;
+      font-size: 12px;
+      color: var(--app-muted);
+    }
+  </style>
+  <link rel="stylesheet" href="../assets/sb-tools.css" />
+</head>
+<body>
+  <div class="page wrap">
+    <div class="card">
+      <div class="page-head">
+        <div>
+          <h1>Deprecate External IDs</h1>
+          <div class="page-sub">Generate MongoDB Compass update statements to deprecate external IDs.</div>
+        </div>
+      </div>
+      <div class="note">
+        This tool formats <strong>externalId</strong> values as <code>externalId_Deleted_OP-12345</code> using the OP ticket you provide.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Query Inputs</div>
+      <div class="grid">
+        <div>
+          <label for="collectionName">Collection name</label>
+          <input type="text" id="collectionName" placeholder="e.g. syncengineservice_recordsyncstates" />
+        </div>
+        <div>
+          <label for="instanceId">Instance ID</label>
+          <input type="text" id="instanceId" placeholder="e.g. 68f0036516951216a2f760c4" />
+        </div>
+        <div>
+          <label for="recordType">Record type</label>
+          <input type="text" id="recordType" placeholder="e.g. Vendor" />
+        </div>
+        <div>
+          <label for="opTicket">OP ticket number</label>
+          <input type="text" id="opTicket" placeholder="e.g. OP-12345" />
+        </div>
+      </div>
+
+      <label for="inputExternalIds">External IDs (one per line)</label>
+      <textarea id="inputExternalIds" class="mono" placeholder="Example:
+ENTE02
+ENTE03
+ANPO02
+ARREY01"></textarea>
+
+      <div class="button-group">
+        <button type="button" onclick="generateQueries()">Generate MongoDB Updates</button>
+        <button type="button" id="copyBtn" class="secondary" onclick="copyOutput()">Copy to Clipboard</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Output</div>
+      <pre id="output" class="output mono">// Output will appear here</pre>
+    </div>
+  </div>
+
+  <script>
+  function generateQueries() {
+    const input = document.getElementById("inputExternalIds").value.trim();
+    const instanceId = document.getElementById("instanceId").value.trim();
+    const collection = document.getElementById("collectionName").value.trim();
+    const opTicket = document.getElementById("opTicket").value.trim();
+    const recordType = document.getElementById("recordType").value.trim();
+    const lines = input.split(/\n+/);
+    let output = "";
+
+    if (!collection) {
+      alert("Please enter a collection name.");
+      return;
+    }
+    if (!instanceId) {
+      alert("Please enter an instanceId.");
+      return;
+    }
+    if (!recordType) {
+      alert("Please enter a recordType.");
+      return;
+    }
+    if (!opTicket) {
+      alert("Please enter an OP Ticket number.");
+      return;
+    }
+    if (!input) {
+      alert("Please enter at least one externalId.");
+      return;
+    }
+
+    lines.forEach(line => {
+      const refCode = line.trim();
+      if (refCode) {
+        const newExternalId = `${refCode}_Deleted_${opTicket}`;
+        const query =
+`db.getCollection("${collection}").updateMany(
+  { instanceId: "${instanceId}", externalId: "${refCode}", recordType: "${recordType}" },
+  { $set: { externalId: "${newExternalId}" } }
+);`;
+        output += query + "\n\n";
+      }
+    });
+
+    document.getElementById("output").textContent = output || "// No valid externalIds found.";
+  }
+
+  function copyOutput() {
+    const outputText = document.getElementById("output").textContent;
+    const copyBtn = document.getElementById("copyBtn");
+    if (!outputText.trim()) return alert("No output to copy yet.");
+
+    navigator.clipboard.writeText(outputText)
+      .then(() => {
+        copyBtn.textContent = "Copied!";
+        copyBtn.classList.add("copied");
+        setTimeout(() => {
+          copyBtn.textContent = "Copy to Clipboard";
+          copyBtn.classList.remove("copied");
+        }, 2000);
+      })
+      .catch(err => alert("Failed to copy: " + err));
+  }
+  </script>
+</body>
+</html>
